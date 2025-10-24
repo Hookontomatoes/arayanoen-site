@@ -3,207 +3,126 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>あらや農園 | 農業 × Webデザイン × ソフト開発</title>
-  <meta name="description" content="青森・あらや農園。自然と調和する農業と、Webデザイン・ソフト開発で地域を支える。軽く速いHP/LP制作、業務ツール開発まで。">
-  <!-- 共有時の見栄え（必要に応じ画像差し替え） -->
-  <meta property="og:title" content="あらや農園 | 農業 × Webデザイン × ソフト開発">
-  <meta property="og:description" content="自然と調和する農業と、Web/ソフトでの課題解決。スマホで見やすく、速いWebを。">
-  <meta property="og:type" content="website">
-  <meta property="og:image" content="assets/images/og.jpg">
-  <meta name="theme-color" content="#165B33">
+  <title>あらや農園｜自然と調和する農業 × デザイン × 開発</title>
+  <meta name="description" content="青森・あらや農園。自然農法による野菜栽培と、Webデザイン・ソフト開発で地域を支える個人事業です。">
   <style>
-    :root{
-      --bg:#ffffff; --fg:#1b1f23; --accent:#165B33; --accent2:#0E2A47; --muted:#6b7280; --card:#f7f8f9;
-      --radius:16px; --maxw:1100px;
+    :root {
+      --green:#165B33;
+      --brown:#7B5E3B;
+      --bg:#fff;
+      --text:#222;
     }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans JP",sans-serif;line-height:1.75}
-    img{max-width:100%;height:auto;display:block}
-    a{color:var(--accent2);text-decoration:none}
-    a:hover{opacity:.85}
-    .container{max-width:var(--maxw);margin:auto;padding:0 16px}
-
-    /* Header */
-    header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #eef0f2}
-    .nav{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
-    .brand .logo{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1db954, #165B33)}
-    details.menu{position:relative}
-    details.menu summary{list-style:none;cursor:pointer;padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px}
-    details.menu[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
-    .menu-panel{position:absolute;right:0;top:40px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px;min-width:200px}
-    .menu-panel a{display:block;padding:10px;border-radius:8px}
-    .menu-panel a:hover{background:#f3f4f6}
-    @media(min-width:900px){
-      details.menu{display:none}
-      nav.links{display:flex;gap:20px}
+    body {
+      margin:0;
+      font-family: "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      text-align:center;
+      line-height:1.7;
     }
-    @media(max-width:899px){ nav.links{display:none} }
-
-    /* Hero */
-    .hero{padding:56px 0 28px}
-    .hero .inner{display:grid;gap:24px;align-items:center}
-    .hero h1{font-size:clamp(24px,4vw,40px);line-height:1.3;margin:0}
-    .lead{color:var(--muted)}
-    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-    .kpis div{background:var(--card);border:1px solid #eef0f2;border-radius:12px;padding:10px;text-align:center;font-size:14px}
-    .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
-    .btn{display:inline-block;padding:12px 18px;border-radius:12px;font-weight:700;border:1px solid #e5e7eb}
-    .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .btn-alt{background:#fff}
-    .hero-img{aspect-ratio:16/9;background:#e6f5eb;border-radius:16px;border:1px solid #d7e9dd;overflow:hidden}
-    .hero-img img{object-fit:cover;width:100%;height:100%}
-
-    /* Sections */
-    section{padding:36px 0;border-top:1px solid #f1f3f5}
-    h2{font-size:clamp(20px,3.2vw,28px);margin:0 0 10px}
-    .grid-2{display:grid;gap:20px}
-    @media(min-width:900px){ .grid-2{grid-template-columns:1.1fr .9fr} }
-
-    .cards{display:grid;gap:12px}
-    @media(min-width:700px){ .cards{grid-template-columns:repeat(3,1fr)} }
-    .card{background:var(--card);border:1px solid #eef0f2;border-radius:16px;padding:16px}
-    .card h3{margin:0 0 6px;font-size:18px}
-    .muted{color:var(--muted);font-size:15px}
-
-    /* Gallery */
-    .gallery{display:grid;gap:10px}
-    @media(min-width:700px){ .gallery{grid-template-columns:repeat(3,1fr)} }
-    .gallery figure{margin:0;border:1px solid #eef0f2;border-radius:14px;overflow:hidden;background:#fff}
-    .gallery figcaption{padding:8px 10px;font-size:14px;color:var(--muted)}
-
-    /* CTA band */
-    .band{background:linear-gradient(135deg,#0E2A47,#165B33);color:#fff;border-radius:18px;padding:22px;display:grid;gap:10px}
-    .band .btn{border-color:#fff}
-    .band .btn-primary{background:#fff;color:#0E2A47}
-
-    footer{padding:24px 0;color:#6b7280;font-size:14px}
+    header {
+      background: var(--green);
+      color: #fff;
+      padding: 24px 0;
+    }
+    header h1 {
+      font-size: 1.8rem;
+      margin: 0;
+    }
+    header p {
+      font-size: 0.95rem;
+      margin: 8px 0 0;
+    }
+    main {
+      padding: 24px 12px 48px;
+      max-width: 900px;
+      margin: auto;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 24px;
+    }
+    @media(min-width:700px){
+      .grid {grid-template-columns: repeat(2,1fr);}
+    }
+    .card {
+      border: 2px solid var(--green);
+      border-radius: 14px;
+      padding: 20px;
+      text-decoration: none;
+      color: var(--text);
+      background: #f8fdf8;
+      transition: transform .2s;
+    }
+    .card:hover { transform: scale(1.02); background:#f2faf2; }
+    .card h2 {
+      margin: 0;
+      color: var(--green);
+      font-size: 1.3rem;
+    }
+    .card p {
+      margin: 8px 0 0;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    footer {
+      background: #eee;
+      padding: 20px 10px;
+      font-size: 0.85rem;
+      color: #555;
+      line-height:1.5;
+    }
+    footer a {
+      color: var(--green);
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
   <header>
-    <div class="container nav">
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <a href="/" aria-label="トップへ">あらや農園</a>
-      </div>
-      <nav class="links" aria-label="サイト内">
-        <a href="#farm">農業</a>
-        <a href="#web">Webデザイン</a>
-        <a href="#software">ソフト開発</a>
-        <a href="#works">実績</a>
-        <a class="btn btn-primary" href="https://forms.gle/xxxxxxxx" target="_blank" rel="noopener">お問い合わせ</a>
-      </nav>
-      <details class="menu">
-        <summary aria-label="メニュー">メニュー</summary>
-        <div class="menu-panel" role="menu">
-          <a href="#farm">農業</a>
-          <a href="#web">Webデザイン</a>
-          <a href="#software">ソフト開発</a>
-          <a href="#works">実績</a>
-          <a class="btn btn-primary" href="https://forms.gle/xxxxxxxx" target="_blank" rel="noopener">お問い合わせ</a>
-        </div>
-      </details>
-    </div>
+    <h1>あらや農園</h1>
+    <p>自然と調和する農業 × デザイン × ソフト開発</p>
   </header>
 
   <main>
-    <!-- Hero -->
-    <section class="hero">
-      <div class="container inner grid-2">
-        <div>
-          <h1>自然と調和し、<br>課題を“軽く・速く”解く。</h1>
-          <p class="lead">青森・あらや農園。無農薬の実践と、Webデザイン／Windowsソフト開発で現場を支える個人事業です。</p>
-          <div class="kpis">
-            <div>栽培・直売</div>
-            <div>LP/HP 制作</div>
-            <div>業務ツール開発</div>
-          </div>
-          <div class="cta">
-            <a class="btn btn-primary" href="https://forms.gle/xxxxxxxx" target="_blank" rel="noopener">無料相談（フォーム）</a>
-            <a class="btn btn-alt" href="/lp/">LPを見る</a>
-          </div>
-        </div>
-        <div class="hero-img">
-          <img src="assets/images/hero.jpg" alt="畑とミニトマトの写真">
-        </div>
-      </div>
-    </section>
+    <p>青森を拠点に、無農薬野菜の栽培と、<br>
+    Webデザイン・ソフト開発で地域を支える活動を行っています。</p>
 
-    <!-- 農業 -->
-    <section id="farm">
-      <div class="container grid-2">
-        <div>
-          <h2>農業｜自然と調和する栽培</h2>
-          <p class="muted">無農薬・化学肥料不使用の実践。小学校・地域連携の体験や直売も行っています。</p>
-          <ul>
-            <li>季節の野菜（ミニトマト等）</li>
-            <li>体験イベント・学校連携</li>
-            <li>乾燥加工・ラベル設計</li>
-          </ul>
-        </div>
-        <div><img src="assets/images/farm.jpg" alt="畑の様子"></div>
-      </div>
-    </section>
-
-    <!-- Webデザイン -->
-    <section id="web">
-      <div class="container">
-        <h2>Webデザイン｜軽く、速く、見やすく</h2>
-        <div class="cards">
-          <div class="card"><h3>高速表示</h3><p class="muted">静的ホスティングでCDN配信。スマホでの体感速度を重視。</p></div>
-          <div class="card"><h3>読みやすい設計</h3><p class="muted">大きめ文字、十分な余白、画像の比率固定で崩れを予防。</p></div>
-          <div class="card"><h3>運用しやすい</h3><p class="muted">GitHub更新のみで自動公開。LPの量産も簡単。</p></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ソフト開発 -->
-    <section id="software">
-      <div class="container grid-2">
-        <div>
-          <h2>ソフト開発｜現場が使えるWindowsツール</h2>
-          <p class="muted">出荷・請求・納品書、印影、PDF/Excel出力など、現場要件に合わせたWinFormsアプリを開発・改善します。</p>
-          <div class="cards">
-            <div class="card"><h3>業務フロー適合</h3><p class="muted">既存データを活かし、最小手数で入力。</p></div>
-            <div class="card"><h3>印刷/帳票</h3><p class="muted">プリンタ設定・PDF保存・自動採番に対応。</p></div>
-            <div class="card"><h3>サポート</h3><p class="muted">段階導入・短い学習で使えるUI。</p></div>
-          </div>
-        </div>
-        <div><img src="assets/images/software.jpg" alt="Windowsフォームの画面イメージ"></div>
-      </div>
-    </section>
-
-    <!-- 実績 -->
-    <section id="works">
-      <div class="container">
-        <h2>実績（抜粋）</h2>
-        <div class="gallery">
-          <figure><img src="assets/images/work1.jpg" alt="実績1"><figcaption>LP制作：直売キャンペーン</figcaption></figure>
-          <figure><img src="assets/images/work2.jpg" alt="実績2"><figcaption>帳票ツール：納品書・請求書</figcaption></figure>
-          <figure><img src="assets/images/work3.jpg" alt="実績3"><figcaption>イベント連携：学校×農園</figcaption></figure>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTAバンド -->
-    <section>
-      <div class="container band">
-        <div>
-          <h2>ご相談はお気軽に</h2>
-          <p class="muted" style="color:#e6f4ea">要件が固まっていなくても大丈夫です。目的に合わせて最短ルートをご提案します。</p>
-        </div>
-        <div class="cta">
-          <a class="btn btn-primary" href="https://forms.gle/xxxxxxxx" target="_blank" rel="noopener">お問い合わせ（無料）</a>
-          <a class="btn" href="/lp/">LPを見る</a>
-        </div>
-      </div>
-    </section>
+    <div class="grid">
+      <a class="card" href="/about/">
+        <h2>1. 農園について</h2>
+        <p>理念・生産者紹介・自然農法の考え方</p>
+      </a>
+      <a class="card" href="/products/">
+        <h2>2. 商品・販売</h2>
+        <p>季節の野菜セット、加工品、購入方法</p>
+      </a>
+      <a class="card" href="/blog/">
+        <h2>3. 栽培記録・活動</h2>
+        <p>播種～収穫、地域連携、栽培実験</p>
+      </a>
+      <a class="card" href="/works/">
+        <h2>4. ポートフォリオ</h2>
+        <p>HarvestSuite™・デザイン・NFT農業</p>
+      </a>
+      <a class="card" href="/news/">
+        <h2>5. お知らせ</h2>
+        <p>新商品・イベント・メディア掲載情報</p>
+      </a>
+      <a class="card" href="/contact/">
+        <h2>6. お問い合わせ</h2>
+        <p>フォーム・LINE・STORESへの導線</p>
+      </a>
+    </div>
   </main>
 
   <footer>
-    <div class="container">
-      <div>© 2025 あらや農園</div>
+    <div>© 2025 あらや農園</div>
+    <div>運営者：荒谷哲朗（青森県階上町）</div>
+    <div>
+      <a href="/privacy/">プライバシーポリシー</a> ｜ 
+      <a href="/law/">特定商取引法に基づく表記</a>
     </div>
   </footer>
 </body>
