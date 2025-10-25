@@ -84,3 +84,31 @@ h2{font-size:clamp(18px,5vw,28px); margin:0 0 10px}
 
 /* セクション内テキスト */
 .muted{color:var(--muted)}
+
+/* ===== About section (overview/producer/method) ===== */
+.grid{display:grid; gap:16px}
+@media(min-width:840px){
+  .grid-2{grid-template-columns:1.2fr .8fr}
+}
+
+figure{margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+figure img{display:block;width:100%;height:auto}
+figure figcaption{font-size:.9rem;color:var(--muted);padding:8px 10px}
+
+table{width:100%;border-collapse:collapse;margin:8px 0 12px;border:1px solid var(--line)}
+th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+th{background:#f3f5f7}
+
+/* CTA band for About */
+.band{
+  margin-top:24px;
+  background:linear-gradient(135deg,#0E2A47,#165B33);
+  color:#fff;
+  border-radius:18px;
+  padding:20px;
+  display:grid;
+  gap:12px;
+}
+.band .btn{border:1px solid #fff;background:#fff;color:#0E2A47}
+.band .btn + .btn{margin-left:8px}
+
