@@ -1,114 +1,198 @@
-:root{
-  --bg:#ffffff; --fg:#1b1f23; --muted:#6b7280;
-  --green:#165B33; --navy:#0E2A47; --line:#eef0f2; --card:#f7f8f9;
-  --radius:16px; --maxw:980px;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans JP",sans-serif;line-height:1.75}
-img{max-width:100%;height:auto;display:block}
-a{color:var(--navy);text-decoration:none}
+/* =========================================================
+   Araya Farm – Global CSS (clean rebuild)
+   ---------------------------------------------------------
+   ・トップ共通と ABOUT を一貫デザインで統合
+   ・入れ子 <section> の副作用を排除（#about は独立制御）
+   ・カード／図版／表／ボタンの見た目を統一
+   ========================================================= */
 
-/* ヘッダー（LP的に小さく・固定） */
-header{
+/* ---------- Design Tokens ---------- */
+:root{
+  --bg:#ffffff;
+  --fg:#1b1f23;
+  --muted:#6b7280;
+
+  --green:#165B33;
+  --navy:#0E2A47;
+
+  --line:#eef0f2;
+  --card:#f7f8f9;
+
+  --maxw:980px;
+  --radius:16px;
+}
+
+/* ---------- Base ---------- */
+* { box-sizing:border-box; }
+html,body { margin:0; padding:0; background:var(--bg); color:var(--fg); }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans JP",sans-serif;
+  line-height:1.75;
+  -webkit-text-size-adjust:100%;
+}
+img { max-width:100%; height:auto; display:block; }
+a { color:var(--navy); text-decoration:none; }
+p { margin:6px 0 12px; }
+h1 { font-size:clamp(22px,6vw,36px); line-height:1.25; margin:0; }
+h2 { font-size:clamp(20px,3.5vw,28px); margin:20px 0 10px; }
+h3 { font-size:clamp(16px,2.8vw,20px); margin:16px 0 8px; }
+.lead { color:var(--muted); margin-top:6px; }
+.muted { color:var(--muted); }
+
+/* ---------- Layout ---------- */
+.container { max-width:var(--maxw); margin:auto; padding:0 14px; }
+section { padding:28px 0; border-bottom:1px solid var(--line); }
+
+/* ---------- Header (sticky) ---------- */
+header {
   position:sticky; top:0; z-index:20;
   background:#fff; border-bottom:1px solid var(--line);
 }
-.nav{max-width:var(--maxw); margin:auto; padding:10px 14px; display:flex; align-items:center; justify-content:space-between}
-.brand{display:flex; gap:10px; align-items:center; font-weight:800}
-.brand-badge{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#30c26a,var(--green))}
-.cta-head a{display:inline-block; padding:8px 12px; border-radius:12px; border:1px solid var(--green); color:#fff; background:var(--green); font-weight:700}
+.nav {
+  max-width:var(--maxw); margin:auto; padding:10px 14px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.brand { display:flex; gap:10px; align-items:center; font-weight:800; }
+.brand-badge {
+  width:28px; height:28px; border-radius:50%;
+  background:linear-gradient(135deg,#30c26a,var(--green));
+}
+.cta-head a{
+  display:inline-block; padding:8px 12px; border-radius:12px;
+  border:1px solid var(--green); color:#fff; background:var(--green); font-weight:700;
+}
 
-/* LPセクション共通 */
-.container{max-width:var(--maxw); margin:auto; padding:0 14px}
-section{padding:28px 0; border-bottom:1px solid var(--line)}
-h1{font-size:clamp(22px,6vw,36px); line-height:1.25; margin:0}
-h2{font-size:clamp(18px,5vw,28px); margin:0 0 10px}
-.lead{color:var(--muted); margin-top:6px}
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-block; padding:12px 16px; border-radius:12px;
+  border:1px solid #e5e7eb; background:#fff; font-weight:700;
+}
+.btn-primary{ background:var(--green); color:#fff; border-color:var(--green); }
 
-/* ヒーロー */
-.hero{padding:18px 0 8px}
+/* ---------- Cards ---------- */
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px;
+}
+
+/* ---------- Hero ---------- */
+.hero{ padding:18px 0 8px; }
 .hero-card{
   background:linear-gradient(135deg,#eaf7ef,#ffffff);
   border:1px solid #d9eadf; border-radius:18px; padding:18px;
   display:grid; gap:14px;
 }
-.kpis{display:flex; gap:8px; flex-wrap:wrap}
-.kpis span{padding:6px 10px; border:1px solid var(--line); background:#fff; border-radius:999px; font-size:14px}
-.hero-cta{display:flex; gap:10px; flex-wrap:wrap}
-.btn{display:inline-block; padding:12px 16px; border-radius:12px; border:1px solid #e5e7eb; background:#fff; font-weight:700}
-.btn-primary{background:var(--green); color:#fff; border-color:var(--green)}
+.kpis{ display:flex; gap:8px; flex-wrap:wrap; }
+.kpis span{
+  padding:6px 10px; border:1px solid var(--line); background:#fff;
+  border-radius:999px; font-size:14px;
+}
+.hero-cta{ display:flex; gap:10px; flex-wrap:wrap; }
 
-/* セクションヘッダー（LP風帯） */
+/* ---------- Band Title (section header) ---------- */
 .band-title{
   display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
   margin-bottom:10px;
 }
-.band-title .more{font-size:14px}
+.band-title .more{ font-size:14px; }
 
-/* スライダー（横スクロール＋ボタン＋ドット） */
+/* ---------- Carousel ---------- */
 .carousel{ position:relative; }
 .track{
   display:flex; gap:12px; overflow:hidden; scroll-behavior:smooth;
-  -webkit-overflow-scrolling: touch; /* iOSバウンス対策 */
+  -webkit-overflow-scrolling:touch;
 }
-.card{
+.card.item{
+  /* もし item クラスで使う場合の保険（未使用なら無視されます） */
+  padding:0; overflow:hidden;
+}
+.card .body{ padding:12px; }
+.card h3{ margin:0 0 6px; font-size:18px; }
+.card p{ margin:0; color:var(--muted); font-size:14px; }
+.card .go{ margin-top:8px; display:inline-block; font-weight:700; }
+.card { /* carousel のカード幅 */
   min-width:82%;
-  background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden;
+  overflow:hidden;
 }
-.card .body{padding:12px}
-.card h3{margin:0 0 6px; font-size:18px}
-.card p{margin:0; color:var(--muted); font-size:14px}
-.card .go{margin-top:8px; display:inline-block; font-weight:700}
-
-/* PCではカード幅を縮めて複数見せる（でも縦読み崩さない） */
 @media(min-width:900px){
-  .card{min-width:31%}
+  .card{ min-width:31%; }
 }
-
-/* スライダーボタン */
 .navbtn{
   position:absolute; top:40%; transform:translateY(-50%);
-  width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:#fff;
+  width:38px; height:38px; border-radius:50%;
+  border:1px solid var(--line); background:#fff;
   display:grid; place-items:center; cursor:pointer; user-select:none;
   box-shadow:0 2px 8px rgba(0,0,0,.06);
 }
-.navprev{left:-6px}
-.navnext{right:-6px}
-/* モバイルで指先の誤タップ減らす余白 */
+.navprev{ left:-6px; }
+.navnext{ right:-6px; }
 @media(max-width:420px){ .navprev{left:2px} .navnext{right:2px} }
+.dots{ display:flex; gap:6px; justify-content:center; margin-top:10px; }
+.dot{ width:8px; height:8px; border-radius:50%; background:#d1d5db; }
+.dot.active{ background:var(--green); }
 
-/* ドット */
-.dots{display:flex; gap:6px; justify-content:center; margin-top:10px}
-.dot{width:8px; height:8px; border-radius:50%; background:#d1d5db}
-.dot.active{background:var(--green)}
+/* =========================================================
+   ABOUT (Top 内の「農園について」セクション)
+   ---------------------------------------------------------
+   ※ トップの共通 section スタイルの影響を最小化するため
+      #about 配下は専用指定で上書き
+   ========================================================= */
+#about { /* 外枠は共通 section のまま */ }
+#about .about-block { margin:24px 0; }
+#about .about-block:first-child { margin-top:0; }
 
-/* セクション内テキスト */
-.muted{color:var(--muted)}
-
-/* ===== About section (overview/producer/method) ===== */
-.grid{display:grid; gap:16px}
+/* Grid */
+#about .grid{ display:grid; gap:16px; }
 @media(min-width:840px){
-  .grid-2{grid-template-columns:1.2fr .8fr}
+  #about .grid-2{ grid-template-columns:1.2fr .8fr; }
 }
 
-figure{margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
-figure img{display:block;width:100%;height:auto}
-figure figcaption{font-size:.9rem;color:var(--muted);padding:8px 10px}
+/* Figure */
+#about figure{
+  margin:0;
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+  background:#fff;
+}
+#about figure img{ display:block; width:100%; height:auto; }
+#about figure figcaption{ font-size:.9rem; color:var(--muted); padding:8px 10px; }
 
-table{width:100%;border-collapse:collapse;margin:8px 0 12px;border:1px solid var(--line)}
-th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
-th{background:#f3f5f7}
+/* Table */
+#about table{
+  width:100%;
+  border-collapse:collapse;
+  margin:8px 0 12px;
+  border:1px solid var(--line);
+}
+#about th,#about td{
+  padding:10px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+#about th{ background:#f3f5f7; }
 
-/* CTA band for About */
-.band{
+/* CTA Band */
+#about .band{
   margin-top:24px;
   background:linear-gradient(135deg,#0E2A47,#165B33);
   color:#fff;
   border-radius:18px;
   padding:20px;
-  display:grid;
-  gap:12px;
+  display:grid; gap:12px;
 }
-.band .btn{border:1px solid #fff;background:#fff;color:#0E2A47}
-.band .btn + .btn{margin-left:8px}
+#about .band .btn{ border:1px solid #fff; background:#fff; color:#0E2A47; }
+#about .band .btn + .btn{ margin-left:8px; }
 
+/* =========================================================
+   Optional: Breadcrumb (if present on other pages)
+   ========================================================= */
+.breadcrumb{ font-size:.9rem; color:var(--muted); margin:6px 0 14px; }
+.breadcrumb a{ color:var(--muted); }
+
+/* =========================================================
+   Footer placeholder (when partials/footer.html is loaded)
+   ========================================================= */
+#site-footer{ border-top:1px solid var(--line); }
