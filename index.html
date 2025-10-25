@@ -1,210 +1,343 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>あらや農園 | 農業 × Webデザイン × ソフト開発</title>
-  <meta name="description" content="青森・あらや農園。自然と調和する農業と、Webデザイン・ソフト開発で地域を支える。軽く速いHP/LP制作、業務ツール開発まで。">
-  <!-- 共有時の見栄え（必要に応じ画像差し替え） -->
-  <meta property="og:title" content="あらや農園 | 農業 × Webデザイン × ソフト開発">
-  <meta property="og:description" content="自然と調和する農業と、Web/ソフトでの課題解決。スマホで見やすく、速いWebを。">
-  <meta property="og:type" content="website">
-  <meta property="og:image" content="assets/images/og.jpg">
-  <meta name="theme-color" content="#165B33">
-  <style>
-    :root{
-      --bg:#ffffff; --fg:#1b1f23; --accent:#165B33; --accent2:#0E2A47; --muted:#6b7280; --card:#f7f8f9;
-      --radius:16px; --maxw:1100px;
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"Noto Sans JP",sans-serif;line-height:1.75}
-    img{max-width:100%;height:auto;display:block}
-    a{color:var(--accent2);text-decoration:none}
-    a:hover{opacity:.85}
-    .container{max-width:var(--maxw);margin:auto;padding:0 16px}
-
-    /* Header */
-    header{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid #eef0f2}
-    .nav{display:flex;align-items:center;justify-content:space-between;padding:10px 0}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
-    .brand .logo{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1db954, #165B33)}
-    details.menu{position:relative}
-    details.menu summary{list-style:none;cursor:pointer;padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px}
-    details.menu[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
-    .menu-panel{position:absolute;right:0;top:40px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:8px;min-width:200px}
-    .menu-panel a{display:block;padding:10px;border-radius:8px}
-    .menu-panel a:hover{background:#f3f4f6}
-    @media(min-width:900px){
-      details.menu{display:none}
-      nav.links{display:flex;gap:20px}
-    }
-    @media(max-width:899px){ nav.links{display:none} }
-
-    /* Hero */
-    .hero{padding:56px 0 28px}
-    .hero .inner{display:grid;gap:24px;align-items:center}
-    .hero h1{font-size:clamp(24px,4vw,40px);line-height:1.3;margin:0}
-    .lead{color:var(--muted)}
-    .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-    .kpis div{background:var(--card);border:1px solid #eef0f2;border-radius:12px;padding:10px;text-align:center;font-size:14px}
-    .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
-    .btn{display:inline-block;padding:12px 18px;border-radius:12px;font-weight:700;border:1px solid #e5e7eb}
-    .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .btn-alt{background:#fff}
-    .hero-img{aspect-ratio:16/9;background:#e6f5eb;border-radius:16px;border:1px solid #d7e9dd;overflow:hidden}
-    .hero-img img{object-fit:cover;width:100%;height:100%}
-
-    /* Sections */
-    section{padding:36px 0;border-top:1px solid #f1f3f5}
-    h2{font-size:clamp(20px,3.2vw,28px);margin:0 0 10px}
-    .grid-2{display:grid;gap:20px}
-    @media(min-width:900px){ .grid-2{grid-template-columns:1.1fr .9fr} }
-
-    .cards{display:grid;gap:12px}
-    @media(min-width:700px){ .cards{grid-template-columns:repeat(3,1fr)} }
-    .card{background:var(--card);border:1px solid #eef0f2;border-radius:16px;padding:16px}
-    .card h3{margin:0 0 6px;font-size:18px}
-    .muted{color:var(--muted);font-size:15px}
-
-    /* Gallery */
-    .gallery{display:grid;gap:10px}
-    @media(min-width:700px){ .gallery{grid-template-columns:repeat(3,1fr)} }
-    .gallery figure{margin:0;border:1px solid #eef0f2;border-radius:14px;overflow:hidden;background:#fff}
-    .gallery figcaption{padding:8px 10px;font-size:14px;color:var(--muted)}
-
-    /* CTA band */
-    .band{background:linear-gradient(135deg,#0E2A47,#165B33);color:#fff;border-radius:18px;padding:22px;display:grid;gap:10px}
-    .band .btn{border-color:#fff}
-    .band .btn-primary{background:#fff;color:#0E2A47}
-
-    footer{padding:24px 0;color:#6b7280;font-size:14px}
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>あらや農園｜自然と調和する農業 × デザイン × 開発</title>
+  <meta name="description" content="青森・あらや農園。無農薬野菜と、Webデザイン・ソフト開発で現場を支える個人事業です。スマホで見やすいLP構成。">
+  <link rel="preload" href="/assets/style.css" as="style">
+  <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
   <header>
-    <div class="container nav">
+    <div class="nav">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <a href="/" aria-label="トップへ">あらや農園</a>
+        <div class="brand-badge" aria-hidden="true"></div>
+        あらや農園
       </div>
-      <nav class="links" aria-label="サイト内">
-        <a href="#farm">農業</a>
-        <a href="#web">Webデザイン</a>
-        <a href="#software">ソフト開発</a>
-        <a href="#works">実績</a>
-        <a class="btn btn-primary" href="https://forms.gle/xxxxxxxx" target="_blank" rel="noopener">お問い合わせ</a>
-      </nav>
-      <details class="menu">
-        <summary aria-label="メニュー">メニュー</summary>
-        <div class="menu-panel" role="menu">
-          <a href="#farm">農業</a>
-          <a href="#web">Webデザイン</a>
-          <a href="#software">ソフト開発</a>
-          <a href="#works">実績</a>
-          <a class="btn btn-primary" href="https://forms.gle/xxxxxxxx" target="_blank" rel="noopener">お問い合わせ</a>
-        </div>
-      </details>
+      <div class="cta-head">
+        <a href="/contact/">お問い合わせ</a>
+      </div>
     </div>
   </header>
 
   <main>
-    <!-- Hero -->
+    <!-- HERO -->
     <section class="hero">
-      <div class="container inner grid-2">
-        <div>
-          <h1>自然と調和し、<br>課題を“軽く・速く”解く。</h1>
-          <p class="lead">青森・あらや農園。無農薬の実践と、Webデザイン／Windowsソフト開発で現場を支える個人事業です。</p>
-          <div class="kpis">
-            <div>栽培・直売</div>
-            <div>LP/HP 制作</div>
-            <div>業務ツール開発</div>
-          </div>
-          <div class="cta">
-            <a class="btn btn-primary" href="https://forms.gle/xxxxxxxx" target="_blank" rel="noopener">無料相談（フォーム）</a>
-            <a class="btn btn-alt" href="/lp/">LPを見る</a>
-          </div>
-        </div>
-        <div class="hero-img">
-          <img src="assets/images/hero.jpg" alt="畑とミニトマトの写真">
-        </div>
-      </div>
-    </section>
-
-    <!-- 農業 -->
-    <section id="farm">
-      <div class="container grid-2">
-        <div>
-          <h2>農業｜自然と調和する栽培</h2>
-          <p class="muted">無農薬・化学肥料不使用の実践。小学校・地域連携の体験や直売も行っています。</p>
-          <ul>
-            <li>季節の野菜（ミニトマト等）</li>
-            <li>体験イベント・学校連携</li>
-            <li>乾燥加工・ラベル設計</li>
-          </ul>
-        </div>
-        <div><img src="assets/images/farm.jpg" alt="畑の様子"></div>
-      </div>
-    </section>
-
-    <!-- Webデザイン -->
-    <section id="web">
       <div class="container">
-        <h2>Webデザイン｜軽く、速く、見やすく</h2>
-        <div class="cards">
-          <div class="card"><h3>高速表示</h3><p class="muted">静的ホスティングでCDN配信。スマホでの体感速度を重視。</p></div>
-          <div class="card"><h3>読みやすい設計</h3><p class="muted">大きめ文字、十分な余白、画像の比率固定で崩れを予防。</p></div>
-          <div class="card"><h3>運用しやすい</h3><p class="muted">GitHub更新のみで自動公開。LPの量産も簡単。</p></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ソフト開発 -->
-    <section id="software">
-      <div class="container grid-2">
-        <div>
-          <h2>ソフト開発｜現場が使えるWindowsツール</h2>
-          <p class="muted">出荷・請求・納品書、印影、PDF/Excel出力など、現場要件に合わせたWinFormsアプリを開発・改善します。</p>
-          <div class="cards">
-            <div class="card"><h3>業務フロー適合</h3><p class="muted">既存データを活かし、最小手数で入力。</p></div>
-            <div class="card"><h3>印刷/帳票</h3><p class="muted">プリンタ設定・PDF保存・自動採番に対応。</p></div>
-            <div class="card"><h3>サポート</h3><p class="muted">段階導入・短い学習で使えるUI。</p></div>
+        <div class="hero-card">
+          <div>
+            <h1>自然と調和し、<br>課題を“軽く・速く”解く。</h1>
+            <p class="lead">無農薬の実践と、Webデザイン／Windowsソフト開発で地域を支える個人事業です。</p>
+          </div>
+          <div class="kpis">
+            <span>栽培・直売</span><span>LP/HP制作</span><span>業務ツール開発</span>
+          </div>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="/products/">季節の野菜セットを見る</a>
+            <a class="btn" href="/works/">制作・開発の実績</a>
           </div>
         </div>
-        <div><img src="assets/images/software.jpg" alt="Windowsフォームの画面イメージ"></div>
       </div>
     </section>
 
-    <!-- 実績 -->
+    <!-- ABOUT（農園について） -->
+<section id="about">
+  <div class="container">
+    <!-- 1. 農園概要・理念・栽培方針 -->
+    <div class="about-block">
+      <div class="grid grid-2">
+        <div>
+          <h2>1. 農園概要・理念・栽培方針</h2>
+          <div class="card">
+            <p><strong>名称：</strong>あらや農園（青森県階上町）</p>
+            <p><strong>理念：</strong>「自然と調和し、食べる人にやさしい野菜を。」土と微生物の働きを尊重し、無農薬・化学肥料不使用を基本とします。</p>
+            <p><strong>主な作目：</strong>ミニトマト、じゃがいも、にんじん、大根、長ネギ、ポップコーン用とうもろこし 等</p>
+            <p><strong>方針：</strong>土づくりを最優先に、被覆・草生・堆肥等を適切に組み合わせ、環境負荷の低減と持続可能な生産を両立します。</p>
+          </div>
+        </div>
+        <figure>
+          <img src="/assets/images/farm.jpg" alt="畑の風景（あらや農園）">
+          <figcaption>日当たりの良い圃場で季節の作物を栽培しています。</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <!-- 2. 生産者紹介 -->
+    <div class="about-block">
+      <h2>2. 生産者紹介（プロフィール）</h2>
+      <div class="card">
+        <div class="grid grid-2">
+          <div>
+            <p><strong>代表：</strong>荒谷 哲朗</p>
+            <p><strong>自己紹介：</strong>地域の学校・団体と連携しながら、自然農法の実践と普及、体験学習の受け入れ、加工品開発に取り組んでいます。加えて、Webデザイン・Windowsソフト開発で現場課題の解決にも尽力しています。</p>
+            <p><strong>主な取り組み：</strong></p>
+            <ul>
+              <li>学校連携の栽培・収穫体験、出張ワークショップ</li>
+              <li>記録・帳票のデジタル化（納品書・請求書・印影・PDF出力 等）</li>
+              <li>トレーサビリティや地域プロジェクトとの連携</li>
+            </ul>
+          </div>
+          <figure>
+            <img src="/assets/images/producer.jpg" alt="生産者の写真">
+            <figcaption>畑とデジタルの両面から、現場の“使いやすさ”を追求しています。</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 栽培方法・自然農法の説明 -->
+    <div class="about-block">
+      <h2>3. 栽培方法・自然農法の説明</h2>
+
+      <h3>3-1. 基本の考え方</h3>
+      <p>過度な投入に頼らず、圃場環境の改善と作物本来の力を引き出すことを目指します。草生・被覆、輪作、土壌分析に基づく微調整を行い、病害の発生を抑えます。</p>
+
+      <h3>3-2. 使用しない資材</h3>
+      <table>
+        <thead><tr><th>区分</th><th>扱い</th><th>備考</th></tr></thead>
+        <tbody>
+          <tr><td>化学合成農薬</td><td>使用しません</td><td>病害虫は耕種的防除・物理的対策で対応</td></tr>
+          <tr><td>化学肥料</td><td>使用しません</td><td>土壌改良・有機質中心の施用</td></tr>
+          <tr><td>遺伝子組換え種子</td><td>使用しません</td><td>在来・固定種等を選定（作目による）</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3-3. 主な実践</h3>
+      <ul>
+        <li><strong>土づくり：</strong>堆肥・残渣の循環、通気性の確保、必要に応じた石灰資材の最小限施用</li>
+        <li><strong>草生・被覆：</strong>通路にヘアリーベッチ等を播種し、保湿・雑草抑制・窒素固定を図る</li>
+        <li><strong>輪作・混植：</strong>病害虫の連鎖を断ち、土壌疲弊を避ける配置計画</li>
+        <li><strong>水管理：</strong>保水と排水のバランスを重視し、根張りを促進</li>
+        <li><strong>見える化：</strong>作業記録・生育記録を継続、改善サイクルに活用</li>
+      </ul>
+
+      <div class="card">
+        <p class="muted">※ 地域の指導機関・保健所等の最新ガイドを随時確認し、加工・表示・衛生管理は法令に従います。</p>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="about-block">
+      <div class="band">
+        <div>
+          <h2 style="margin:0 0 6px">見学・体験・ご相談について</h2>
+          <p class="lead" style="color:#e6f4ea;margin:0">体験受け入れや共同企画、栽培方針の詳細はお気軽にお問い合わせください。</p>
+        </div>
+        <div>
+          <a class="btn btn-primary" href="/contact/">お問い合わせ（フォーム）</a>
+          <a class="btn" href="/products/">商品・販売ページへ</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+    <!-- 1. 商品（スライド） -->
+    <section id="products">
+      <div class="container">
+        <div class="band-title">
+          <h2>1. 商品・販売</h2>
+          <a class="more" href="/products/">すべて見る →</a>
+        </div>
+
+        <div class="carousel" data-carousel="products">
+          <button class="navbtn navprev" aria-label="前へ">‹</button>
+          <div class="track">
+            <article class="card">
+              <img loading="lazy" src="/assets/images/products-set.jpg" alt="季節の野菜セット">
+              <div class="body">
+                <h3>季節の野菜セット</h3>
+                <p>お試し・定期便あり。旬をバランスよく詰め合わせ。</p>
+                <a class="go" href="/products/">詳細へ</a>
+              </div>
+            </article>
+            <article class="card">
+              <img loading="lazy" src="/assets/images/dried-tomato.jpg" alt="ドライトマト">
+              <div class="body">
+                <h3>加工品：ドライトマト</h3>
+                <p>低温乾燥で旨み凝縮。パスタ・サラダに。</p>
+                <a class="go" href="/products/">詳細へ</a>
+              </div>
+            </article>
+            <article class="card">
+              <img loading="lazy" src="/assets/images/popcorn.jpg" alt="ポップコーン用とうもろこし">
+              <div class="body">
+                <h3>ポップコーン種子</h3>
+                <p>固定種をそのまま乾燥。おうち時間に。</p>
+                <a class="go" href="/products/">詳細へ</a>
+              </div>
+            </article>
+          </div>
+          <button class="navbtn navnext" aria-label="次へ">›</button>
+          <div class="dots" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 栽培記録（スライド） -->
+    <section id="blog">
+      <div class="container">
+        <div class="band-title">
+          <h2>2. 栽培記録・活動</h2>
+          <a class="more" href="/blog/">すべて見る →</a>
+        </div>
+
+        <div class="carousel" data-carousel="blog">
+          <button class="navbtn navprev" aria-label="前へ">‹</button>
+          <div class="track">
+            <article class="card">
+              <img loading="lazy" src="/assets/images/blog/tomato-final.jpg" alt="ミニトマト最終収穫">
+              <div class="body">
+                <h3>ミニトマト：最終収穫</h3>
+                <p>来期に向けた畝幅・水管理の見直しメモ。</p>
+                <a class="go" href="/blog/2025-10-20-mini-tomato-final/">詳細へ</a>
+              </div>
+            </article>
+            <article class="card">
+              <img loading="lazy" src="/assets/images/blog/carrot.jpg" alt="人参サイズ分布">
+              <div class="body">
+                <h3>人参：サイズ分布</h3>
+                <p>M中心で箱詰め歩留まり良好。乾き対策が奏功。</p>
+                <a class="go" href="/blog/2025-09-05-carrot-harvest/">詳細へ</a>
+              </div>
+            </article>
+            <article class="card">
+              <img loading="lazy" src="/assets/images/blog/fair.jpg" alt="地域マルシェ">
+              <div class="body">
+                <h3>地域マルシェ：加工品試食</h3>
+                <p>塩分0.2%刻みの嗜好差を検証。販売へ反映。</p>
+                <a class="go" href="/blog/2025-06-22-community-fair/">詳細へ</a>
+              </div>
+            </article>
+          </div>
+          <button class="navbtn navnext" aria-label="次へ">›</button>
+          <div class="dots" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. ポートフォリオ（スライド） -->
     <section id="works">
       <div class="container">
-        <h2>実績（抜粋）</h2>
-        <div class="gallery">
-          <figure><img src="assets/images/work1.jpg" alt="実績1"><figcaption>LP制作：直売キャンペーン</figcaption></figure>
-          <figure><img src="assets/images/work2.jpg" alt="実績2"><figcaption>帳票ツール：納品書・請求書</figcaption></figure>
-          <figure><img src="assets/images/work3.jpg" alt="実績3"><figcaption>イベント連携：学校×農園</figcaption></figure>
+        <div class="band-title">
+          <h2>3. ポートフォリオ</h2>
+          <a class="more" href="/works/">すべて見る →</a>
+        </div>
+
+        <div class="carousel" data-carousel="works">
+          <button class="navbtn navprev" aria-label="前へ">‹</button>
+          <div class="track">
+            <article class="card">
+              <img loading="lazy" src="/assets/images/works/harvestsuite-dashboard.jpg" alt="HarvestSuiteダッシュボード">
+              <div class="body">
+                <h3>HarvestSuite™</h3>
+                <p>収穫・在庫・出荷まで一元管理のWindowsアプリ。</p>
+                <a class="go" href="/works/harvestsuite/">詳細へ</a>
+              </div>
+            </article>
+            <article class="card">
+              <img loading="lazy" src="/assets/images/works/lp-veg.jpg" alt="野菜販売LP">
+              <div class="body">
+                <h3>野菜販売LP</h3>
+                <p>高速・読みやすい静的LP。STORES/LINE連携。</p>
+                <a class="go" href="/lp/">詳細へ</a>
+              </div>
+            </article>
+            <article class="card">
+              <img loading="lazy" src="/assets/images/works/logo-farm.jpg" alt="ロゴ・パッケージ">
+              <div class="body">
+                <h3>ロゴ／パッケージ</h3>
+                <p>Inkscape制作。印刷/WEBで視認性最適化。</p>
+                <a class="go" href="/works/logo-farm/">詳細へ</a>
+              </div>
+            </article>
+          </div>
+          <button class="navbtn navnext" aria-label="次へ">›</button>
+          <div class="dots" aria-hidden="true"></div>
         </div>
       </div>
     </section>
 
-    <!-- CTAバンド -->
-    <section>
-      <div class="container band">
-        <div>
-          <h2>ご相談はお気軽に</h2>
-          <p class="muted" style="color:#e6f4ea">要件が固まっていなくても大丈夫です。目的に合わせて最短ルートをご提案します。</p>
-        </div>
-        <div class="cta">
-          <a class="btn btn-primary" href="https://forms.gle/xxxxxxxx" target="_blank" rel="noopener">お問い合わせ（無料）</a>
-          <a class="btn" href="/lp/">LPを見る</a>
+    <!-- 4. お問い合わせCTA -->
+    <section id="cta">
+      <div class="container">
+        <div class="hero-card" style="background:linear-gradient(135deg,#0E2A47,#165B33); color:#fff; border-color:#0E2A47">
+          <h2 style="margin:0">ご相談はお気軽に</h2>
+          <p class="lead" style="color:#e6f4ea">目的が固まっていなくてもOK。最短ルートをご提案します。</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="/contact/">お問い合わせ（無料）</a>
+            <a class="btn" href="/products/">商品を見る</a>
+          </div>
         </div>
       </div>
     </section>
   </main>
 
-  <footer>
-    <div class="container">
-      <div>© 2025 あらや農園</div>
-    </div>
-  </footer>
+  <!-- 共通フッター（別ファイル読込） -->
+  <div id="site-footer"></div>
+
+  <script>
+    // 共通フッター読込
+    fetch('/partials/footer.html').then(r=>r.text()).then(h=>{
+      document.getElementById('site-footer').innerHTML = h;
+    }).catch(()=>{});
+
+    // スライダー初期化（タッチ＆ボタン＆ドット）
+    function initCarousel(root){
+      const track = root.querySelector('.track');
+      const prev  = root.querySelector('.navprev');
+      const next  = root.querySelector('.navnext');
+      const dots  = root.querySelector('.dots');
+      const cards = Array.from(track.children);
+      if(cards.length === 0) return;
+
+      const getCardWidth = () => cards[0].getBoundingClientRect().width + 12; // gap分
+      let index = 0;
+
+      // ドット生成
+      dots.innerHTML = '';
+      cards.forEach((_,i)=>{
+        const d = document.createElement('div'); d.className='dot'+(i===0?' active':'');
+        d.addEventListener('click', ()=>goTo(i));
+        dots.appendChild(d);
+      });
+      const setDots = ()=>{
+        dots.querySelectorAll('.dot').forEach((e,i)=>e.classList.toggle('active', i===index));
+      };
+
+      const goTo = (i)=>{
+        index = Math.max(0, Math.min(cards.length-1, i));
+        track.scrollTo({left: index * getCardWidth(), behavior:'smooth'});
+        setDots();
+      };
+      prev.addEventListener('click', ()=>goTo(index-1));
+      next.addEventListener('click', ()=>goTo(index+1));
+
+      // スワイプ対応
+      let startX=null, scrollStart=null;
+      track.addEventListener('touchstart', (e)=>{
+        startX = e.touches[0].clientX; scrollStart = track.scrollLeft;
+      }, {passive:true});
+      track.addEventListener('touchmove', (e)=>{
+        if(startX==null) return;
+        const dx = e.touches[0].clientX - startX;
+        track.scrollLeft = scrollStart - dx;
+      }, {passive:true});
+      track.addEventListener('touchend', ()=>{
+        const cw = getCardWidth();
+        index = Math.round(track.scrollLeft / cw);
+        goTo(index);
+        startX=null;
+      });
+
+      // リサイズで位置補正
+      window.addEventListener('resize', ()=>goTo(index));
+    }
+
+    document.querySelectorAll('.carousel').forEach(initCarousel);
+  </script>
 </body>
 </html>
