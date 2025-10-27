@@ -111,3 +111,21 @@ th{background:#f3f5f7}
 }
 .band .btn{border:1px solid #fff;background:#fff;color:#0E2A47}
 .band .btn + .btn{margin-left:8px}
+
+/* ===== CONTACT (LP 内) ===== */
+#contact .contact-narrow { max-width: 900px; }
+#contact .contact-grid { align-items: start; }
+@media (min-width: 860px){
+  #contact .grid-2 { grid-template-columns: 1.05fr .95fr; }
+}
+#contact .form-embed iframe{
+  width: 100%;
+  max-width: 760px;
+  height: 800px;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+}
+#contact .note { color: var(--muted); font-size: .92rem; }
+#contact .btns { display:flex; gap:10px; flex-wrap:wrap; }
+
