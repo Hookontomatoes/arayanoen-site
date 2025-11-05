@@ -129,6 +129,17 @@ th{background:#f3f5f7}
 #contact .note { color: var(--muted); font-size: .92rem; }
 #contact .btns { display:flex; gap:10px; flex-wrap:wrap; }
 
+/* Googleフォームの埋め込みを確実に表示 */
+.form-embed iframe{
+  display:block;
+  width:100%;
+  min-height: 1000px; /* 目安。長いフォームなら 1400〜1800px に */
+  border:0;
+}
+@media (max-width:480px){
+  .form-embed iframe{ min-height: 1200px; }
+}
+
 /* ===== 標準フッター（ページ末・中央寄せ・左寄り防止） ===== */
 #site-footer { width:100%; }
 .site-footer{
