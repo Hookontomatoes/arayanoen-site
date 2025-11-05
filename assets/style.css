@@ -129,3 +129,48 @@ th{background:#f3f5f7}
 #contact .note { color: var(--muted); font-size: .92rem; }
 #contact .btns { display:flex; gap:10px; flex-wrap:wrap; }
 
+/* ===== Standard footer (document-end) ===== */
+.site-footer{
+  border-top:1px solid var(--line);
+  background:#fff;
+  color:var(--muted);
+}
+.site-footer .inner{
+  max-width:var(--maxw);
+  margin:auto;
+  padding:18px 14px 80px; /* モバイルの固定バーと重ならないよう下に余白（デスクトップでは後述で上書き） */
+  display:grid; gap:10px;
+}
+.site-footer nav a{ color:var(--navy); font-weight:600; margin-right:12px }
+.site-footer small{ color:#9aa3ad }
+
+/* ===== Sticky action bar (mobile only) ===== */
+.sticky-footer{
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
+  border-top:1px solid var(--line);
+  background:#ffffffcc; /* 半透明で下の内容をうっすら見せる */
+  backdrop-filter:saturate(180%) blur(8px);
+  padding:8px max(10px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
+}
+.sticky-footer .bar{
+  max-width:var(--maxw); margin:auto;
+  display:flex; gap:8px; align-items:center; justify-content:space-between;
+}
+.sticky-footer .bar .btn{
+  flex:1 1 auto; text-align:center; padding:12px 10px;
+}
+.sticky-footer .brand-mini{
+  display:flex; align-items:center; gap:8px; font-weight:800; color:var(--fg);
+}
+.sticky-footer .brand-badge{ width:22px; height:22px }
+
+/* デスクトップでは固定バーを隠し、フッター余白も適正化 */
+@media (min-width:900px){
+  .sticky-footer{ display:none }
+  .site-footer .inner{ padding:24px 14px 24px }
+}
+
+/* 本文が固定バーに隠れないよう、最低下余白を確保 */
+@media (max-width:899.98px){
+  body{ padding-bottom:calc(64px + env(safe-area-inset-bottom)) } /* バー高: 約56〜64px */
+}
