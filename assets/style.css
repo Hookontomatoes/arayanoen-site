@@ -129,9 +129,6 @@ th{background:#f3f5f7}
 #contact .note { color: var(--muted); font-size: .92rem; }
 #contact .btns { display:flex; gap:10px; flex-wrap:wrap; }
 
-/* ===== 固定アクションバー用の高さ（モバイル時のみ使用） ===== */
-:root { --sticky-h:64px; }
-
 /* ===== 標準フッター（ページ末・中央寄せ・左寄り防止） ===== */
 #site-footer { width:100%; }
 .site-footer{
@@ -161,33 +158,26 @@ th{background:#f3f5f7}
 .site-footer nav a{ color:var(--navy); font-weight:600 }
 .site-footer small{ color:#9aa3ad }
 
-/* ===== モバイルだけ表示する「薄い固定アクションバー」 ===== */
-.sticky-footer{
-  position:fixed; left:0; right:0; bottom:0; z-index:30;
-  border-top:1px solid var(--line);
-  background:#ffffffcc;                 /* 薄い半透明 */
-  backdrop-filter:saturate(180%) blur(8px);
-  padding:8px max(10px, env(safe-area-inset-left))
-          calc(8px + env(safe-area-inset-bottom))
-          max(10px, env(safe-area-inset-right));
-  display:none;                         /* 初期はPC向けに非表示 */
+/* ===== 今すぐ購入：フローティングCTA（常時表示・右下） ===== */
+.buy-fab{
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 100;
 }
-.sticky-footer .bar{
-  max-width:var(--maxw);
-  margin-left:auto; margin-right:auto;  /* 中央寄せの核 */
-  display:flex; gap:8px; align-items:center; justify-content:space-between;
+.buy-fab .btn-primary{
+  border-radius: 999px;
+  padding: 14px 18px;
+  border: 1px solid var(--green);
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
 }
-.sticky-footer .brand-mini{ display:flex; align-items:center; gap:8px; font-weight:800; color:var(--fg) }
-.sticky-footer .brand-badge{ width:22px; height:22px }
-.sticky-footer .bar .btn{ flex:1 1 auto; text-align:center; padding:12px 10px }
-
-/* — 表示条件：モバイル幅のみ有効化し、重なり防止の下余白もモバイル時だけ付与 — */
-@media (max-width:899.98px){
-  .sticky-footer{ display:block; }
-  body{ padding-bottom:calc(var(--sticky-h) + env(safe-area-inset-bottom)); }
+@media (max-width: 420px){
+  .buy-fab .btn-primary{ padding: 16px 20px; font-weight: 800; }
 }
-
-/* PC幅ではアクションバーを確実に無効化（標準フッターのみ） */
-@media (min-width:900px){
-  .sticky-footer{ display:none; }
+@media (min-width: 1024px){
+  .buy-fab{
+    right: max(20px, env(safe-area-inset-right));
+    bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+  .buy-fab .btn-primary{ box-shadow: 0 6px 20px rgba(0,0,0,.16); }
 }
