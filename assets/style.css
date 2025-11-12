@@ -60,6 +60,34 @@ h2{font-size:clamp(18px,5vw,28px); margin:0 0 10px}
 .card p{margin:0; color:var(--muted); font-size:14px}
 .card .go{margin-top:8px; display:inline-block; font-weight:700}
 
+/* ===== サムネイル用の固定枠 ===== */
+.card-thumb{
+  width: 100%;
+  aspect-ratio: 4 / 3;      /* 縦横比：4:3 固定。必要なら 16 / 9 などに変更可 */
+  overflow: hidden;
+  background: #f3f4f6;      /* 読み込み前の背景 */
+}
+
+.card-thumb img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;        /* 枠いっぱいに表示して、はみ出す分はトリミング */
+  display: block;
+}
+
+/* ABOUT セクションの写真用：同じく枠を固定 */
+figure.photo-fixed{
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+}
+
+figure.photo-fixed img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
 /* PCではカード幅を縮めて複数見せる（でも縦読み崩さない） */
 @media(min-width:900px){
   .card{min-width:31%}
