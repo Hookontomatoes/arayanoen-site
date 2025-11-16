@@ -6,6 +6,24 @@
   <title>あらや農園｜自然と調和する農業 × デザイン × 開発</title>
   <meta name="description" content="青森・あらや農園。農薬を使わない野菜と、Webデザイン・ソフト開発で現場を支えます。">
   <link rel="stylesheet" href="assets/style.css">
+  <style>
+/* ほのか明朝（WOFF2） */
+@font-face{
+  font-family: "Honoka Shin Mincho L";
+  src: url("assets/fonts/honoka-mincho/Honoka_Shin_Mincho_L.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* ヒーロー見出しだけ ほのか明朝の斜体風にする */
+.hero .honoka-italic{
+  font-family: "Honoka Shin Mincho L", serif;
+  font-style: oblique 12deg;  /* 斜体の傾き。強すぎれば 10deg、弱ければ 14deg に */
+  letter-spacing: .02em;
+}
+</style>
+
 </head>
 <body>
   <header>
@@ -28,7 +46,7 @@
       <div class="container">
         <div class="hero-card">
           <div>
-            <h1>自然と調和し<br>農とくらしを“楽しく・解く”</h1>
+            <h1 class="honoka-italic">自然と調和し<br>農とくらしを“楽しく・解く”</h1>
             <p class="lead">農薬を使わない自然農法の実践と、Webデザイン／ソフト開発で地域を支えます</p>
           </div>
           <div class="kpis">
