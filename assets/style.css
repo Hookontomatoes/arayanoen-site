@@ -220,3 +220,23 @@ th{background:#f3f5f7}
   }
   .buy-fab .btn-primary{ box-shadow: 0 6px 20px rgba(0,0,0,.16); }
 }
+
+/* ===== ヘッダーブランド：アイコン＋ロゴ画像 ===== */
+.brand{ display:flex; align-items:center; }
+.brand-link{
+  display:flex; align-items:center; gap:10px;
+  line-height:1; /* 画像上下のズレ防止 */
+}
+.brand-icon{
+  height: clamp(24px, 4.5vw, 32px);
+  width: auto;
+  display:block;
+}
+.brand-logo{
+  height: clamp(18px, 3.8vw, 28px);
+  width: auto;
+  display:block;
+}
+
+/* 旧バッジは使わない（念のため無効化） */
+.brand-badge{ display:none !important; }
