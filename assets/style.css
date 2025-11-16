@@ -260,3 +260,43 @@ th{background:#f3f5f7}
 
 /* 旧バッジは使わない（念のため無効化） */
 .brand-badge{ display:none !important; }
+
+/* ヒーロー：写真＋半透明グラデーション（後勝ちで強制上書き） */
+.hero-card{
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #d9eadf;
+  border-radius: 18px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  /* 万一の白背景を消す */
+  background: transparent !important;
+}
+
+/* 背面に写真を敷く（cover で全面） */
+.hero-card::before{
+  content: "";
+  position: absolute; inset: 0;
+  background: url("assets/images/hero.jpg") center/cover no-repeat;
+  z-index: 0;        /* 一番下 */
+}
+
+/* 写真の上に半透明グラデーションを重ねる（“うっすら”にする層） */
+.hero-card::after{
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(234,247,239,0.92), rgba(255,255,255,0.92));
+  z-index: 1;        /* テキストの下、写真の上 */
+}
+
+/* 本文は疑似要素の上に載せる */
+.hero-card > *{
+  position: relative;
+  z-index: 2;
+}
+
+/* 読みやすさの微調整（任意） */
+.hero h1{ text-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.lead   { text-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
