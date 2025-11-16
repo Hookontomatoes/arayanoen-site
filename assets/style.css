@@ -27,11 +27,31 @@ h2{font-size:clamp(18px,5vw,28px); margin:0 0 10px}
 
 /* ヒーロー */
 .hero{padding:18px 0 8px}
+/* ヒーロー：グラデを維持しつつ背面に写真を敷く */
 .hero-card{
-  background:linear-gradient(135deg,#eaf7ef,#ffffff);
-  border:1px solid #d9eadf; border-radius:18px; padding:18px;
-  display:grid; gap:14px;
+  /* 上のレイヤー：半透明グラデーション / 下のレイヤー：写真 */
+  background-image:
+    linear-gradient(135deg, rgba(234,247,239,0.92), rgba(255,255,255,0.92)),
+    url("assets/images/hero.jpg");
+  background-size: 100% 100%, cover;   /* グラデは要素に合わせる／写真はカバー */
+  background-position: center, center;
+  background-repeat: no-repeat;
+
+  border: 1px solid #d9eadf;
+  border-radius: 18px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
 }
+
+/* 写真の見え方を微調整したい場合の任意フィルタ */
+@media (min-width: 640px){
+  .hero-card{
+    /* 彩度や明るさを少し抑えると文字が読みやすい */
+    filter: saturate(0.95) contrast(0.98);
+  }
+}
+
 .kpis{display:flex; gap:8px; flex-wrap:wrap}
 .kpis span{padding:6px 10px; border:1px solid var(--line); background:#fff; border-radius:999px; font-size:14px}
 .hero-cta{display:flex; gap:10px; flex-wrap:wrap}
