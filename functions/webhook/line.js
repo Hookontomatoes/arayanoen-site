@@ -12,7 +12,7 @@ const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 async function sign(secret, bodyText) {
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(bodyText ? secret : ""),
+    new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -114,7 +114,7 @@ async function loadFaqCsv(csvUrl) {
  * FAQ 1 行に対する一致度。
  * 「行全体テキスト joined に、ユーザー入力が含まれているか」で見るだけの単純版。
  */
-function scoreItem(item, text) {
+function scoreFaqItem(item, text) {
   const q = (text || "").toLowerCase().trim();
   if (!q) return 0;
   if (!item.joined) return 0;
@@ -135,9 +135,17 @@ function htmlToText(html) {
     .trim();
 }
 
+/** 日本語テキストをマッチング用に正規化 */
+function normalizeJa(s) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/[！!？?。、．，,・･「」『』【】［］\[\]\(\)（）\s]/g, "")
+    .trim();
+}
+
 /**
  * env.ALLOW_URLS に列挙した URL 群（HP / 公式LINE案内ページ / STORES商品ページ / note 記事など）
- * からテキストを取得し、質問文と近い箇所を抜き出して返す。
+ * からテキストを取得し、質問文と近いページを一つ選んで返す。
  *
  * 「改行」だけでなく「カンマ」区切りにも対応。
  * 例:
@@ -152,14 +160,17 @@ async function findAnswerFromPages(env, userText) {
 
   if (!urls.length) return null;
 
-  const query = (userText || "").toLowerCase().trim();
-  if (!query) return null;
+  const queryNorm = normalizeJa(userText);
+  if (!queryNorm || queryNorm.length < 2) return null;
 
-  const words = query.split(/\s+/).filter(Boolean);
+  // 質問文の二文字ずつ（バイグラム）を作る
+  const bigrams = [];
+  for (let i = 0; i < queryNorm.length - 1; i++) {
+    bigrams.push(queryNorm.slice(i, i + 2));
+  }
 
   let bestUrl = null;
   let bestScore = 0;
-  let bestSnippet = "";
 
   for (const url of urls) {
     let res;
@@ -177,41 +188,29 @@ async function findAnswerFromPages(env, userText) {
       continue;
     }
     const plain = htmlToText(html);
-    const lower = plain.toLowerCase();
+    const pageNorm = normalizeJa(plain);
+    if (!pageNorm) continue;
 
     let score = 0;
-    if (lower.includes(query)) score += 5;
-    for (const w of words) {
-      if (lower.includes(w)) score += 1;
+
+    // 全体一致があれば大きく加点
+    if (pageNorm.includes(queryNorm)) score += queryNorm.length * 2;
+
+    // 二文字単位でどれだけ含まれるかを見る
+    for (const bg of bigrams) {
+      if (pageNorm.includes(bg)) score += 1;
     }
 
     if (score > bestScore) {
       bestScore = score;
       bestUrl = url;
-
-      let pos = lower.indexOf(query);
-      if (pos === -1 && words.length) {
-        for (const w of words) {
-          pos = lower.indexOf(w);
-          if (pos !== -1) break;
-        }
-      }
-      if (pos === -1) pos = 0;
-
-      const start = Math.max(0, pos - 40);
-      const end = Math.min(plain.length, start + 160);
-      bestSnippet = plain.slice(start, end).replace(/\s+/g, " ");
     }
   }
 
   if (!bestUrl || bestScore === 0) return null;
 
-  let message = "";
-  if (bestSnippet) {
-    message += bestSnippet.trim() + "\n\n";
-  }
-  message += "詳しくは次のページをご確認ください。\n" + bestUrl;
-  return message;
+  // ページ本文からの要約までは行わず、「ここに載っています」と案内する
+  return `この内容については、次のページに記載があります。\n${bestUrl}`;
 }
 
 /**
@@ -226,7 +225,7 @@ async function findAnswer(env, userText) {
   let best = null;
   let bestScore = -1;
   for (const it of items) {
-    const sc = scoreItem(it, userText);
+    const sc = scoreFaqItem(it, userText);
     if (sc > bestScore) {
       best = it;
       bestScore = sc;
