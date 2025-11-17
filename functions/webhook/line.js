@@ -3,7 +3,7 @@
 //
 // ・FAQ スプレッドシート（env.SHEET_CSV_URL）
 // ・HP / STORES / note / 他（env.ALLOW_URLS）
-// に「書いてあることだけ」を使って回答する。
+// に「書いてあることだけ」を元に回答する。
 // note の /rss などは RSS として読み、各 <item> の記事 URL を返す。
 
 const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
@@ -30,7 +30,7 @@ async function sign(secret, bodyText) {
   return btoa(binary);
 }
 
-/** 質問文に同義語を足す（マッチング専用。回答文は改変しない） */
+/** 質問文に同義語を足す（マッチング専用。回答文そのものは改変しない） */
 function expandWithSynonyms(text) {
   if (!text) return "";
   const base = String(text);
@@ -129,29 +129,41 @@ function normalizeJa(s) {
     .trim();
 }
 
-/** テキスト同士のスコア計算 */
+/**
+ * テキスト同士のスコア計算
+ *
+ * 優先順位:
+ *  1) 質問全文（＋同義語展開）そのものが含まれていれば大きく加点
+ *  2) 質問を空白で区切った「単語」（開業 / 創業 など）が含まれていれば加点
+ *  3) それでも何もヒットしないときだけ、バイグラムの重なりをおまけ点として使う
+ */
 function scoreText(targetJoined, expandedText) {
   const targetNorm = normalizeJa(targetJoined);
-  if (!targetNorm) return 0;
+  const qNorm = normalizeJa(expandedText);
+  if (!targetNorm || !qNorm) return 0;
 
-  const words = (expandedText || "").split(/\s+/).filter(Boolean);
   let score = 0;
 
-  // 単語単位の一致（開業 / 創業 / 送料 など）
+  // 1: 質問全文が含まれているか
+  if (targetNorm.includes(qNorm)) {
+    score += Math.max(30, qNorm.length * 2);
+  }
+
+  // 2: 単語単位（主に同義語展開用）
+  const words = expandedText.split(/\s+/).filter(Boolean);
   for (const w of words) {
     const n = normalizeJa(w);
     if (!n) continue;
     if (targetNorm.includes(n)) {
-      score += Math.max(2, n.length); // 文字数が多いほど加点
+      score += Math.max(8, n.length * 2);
     }
   }
 
-  // 全体文字列のバイグラム一致（おまけ）
-  const qNorm = normalizeJa(expandedText);
-  if (qNorm.length > 1) {
+  // 3: ここまでで全くヒットしていない場合のみ、バイグラムでおまけ点
+  if (score === 0 && qNorm.length > 1) {
     for (let i = 0; i < qNorm.length - 1; i++) {
       const bg = qNorm.slice(i, i + 2);
-      if (targetNorm.includes(bg)) score += 0.5;
+      if (targetNorm.includes(bg)) score += 0.7;
     }
   }
 
@@ -303,7 +315,8 @@ async function findAnswer(env, userText) {
       bestFaqScore = sc;
     }
   }
-  if (bestFaq && bestFaqScore >= 2) {
+  // スコア 5 以上なら採用（短い質問でも通るように）
+  if (bestFaq && bestFaqScore >= 5) {
     let out = bestFaq.answer;
     if (bestFaq.source) out += `\n—\n出典: ${bestFaq.source}`;
     return out;
@@ -321,7 +334,7 @@ async function findAnswer(env, userText) {
         bestDocScore = sc;
       }
     }
-    if (bestDoc && bestDocScore >= 2) {
+    if (bestDoc && bestDocScore >= 5) {
       let msg = "";
       if (bestDoc.snippet) {
         msg += bestDoc.snippet + "\n\n";
