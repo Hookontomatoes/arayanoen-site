@@ -137,6 +137,10 @@ function normalizeJa(s) {
  * FAQ 1 行に対する一致度。
  * 優先的に question 列だけを見てスコアリングし、
  * question が無い場合のみ joined（全列）で評価します。
+ *
+ * さらに、「クエリの冒頭の二〜三文字が含まれていない項目」は
+ * 強制的にスコアをゼロとし、見当違いの回答を減らします。
+ * （例:「圃場はどこにありますか？」で「トークルームはどこにありますか？」を拾わない）
  */
 function scoreFaqItem(item, expandedText) {
   const queryNorm = normalizeJa(expandedText);
@@ -148,6 +152,21 @@ function scoreFaqItem(item, expandedText) {
 
   if (queryNorm.length === 1) {
     return targetNorm.includes(queryNorm) ? 1 : 0;
+  }
+
+  // 冒頭のビグラムをチェック（最大三つ）
+  const prefixCount = Math.min(3, queryNorm.length - 1);
+  let prefixHit = false;
+  for (let i = 0; i < prefixCount; i++) {
+    const bg = queryNorm.slice(i, i + 2);
+    if (targetNorm.includes(bg)) {
+      prefixHit = true;
+      break;
+    }
+  }
+  if (!prefixHit) {
+    // 冒頭のキーワードが一つも含まれていないならスコア 0
+    return 0;
   }
 
   let score = 0;
@@ -177,11 +196,6 @@ function htmlToText(html) {
  * note.com のドメインから、質問に関連する記事を自動検索
  */
 async function searchNoteArticles(noteDomain, expandedText) {
-  // note の検索 URL（例: https://note.com/あなたのアカウント名?q=キーワード）
-  // または Google Custom Search API などを使う方法もあります
-  
-  // ここでは簡易的に、sitemap や RSS から記事一覧を取得する想定
-  // 実装例: note.com/ユーザー名/rss から最新記事を取得
   const rssUrl = `${noteDomain}/rss`;
   
   try {
@@ -190,19 +204,17 @@ async function searchNoteArticles(noteDomain, expandedText) {
     
     const xml = await res.text();
     
-    // RSS から <link> タグを抽出（簡易パース）
     const linkMatches = xml.matchAll(/<link>([^<]+)<\/link>/g);
     const urls = [];
     for (const match of linkMatches) {
       const url = match[1].trim();
-      if (url && url.startsWith('http')) {
+      if (url && url.startsWith("http")) {
         urls.push(url);
       }
     }
     
     if (!urls.length) return null;
     
-    // 各記事をスコアリング
     const queryNorm = normalizeJa(expandedText);
     if (!queryNorm || queryNorm.length < 2) return null;
     
@@ -273,12 +285,10 @@ async function findAnswerFromPages(env, expandedText) {
   let bestScore = 0;
 
   for (const pattern of allowList) {
-    // ★ ワイルドカード対応（note.com/xxx/* など）
-    if (pattern.includes('*')) {
-      const baseDomain = pattern.replace('*', '').replace(/\/+$/, '');
+    if (pattern.includes("*")) {
+      const baseDomain = pattern.replace("*", "").replace(/\/+$/, "");
       
-      // note の場合は RSS 検索
-      if (baseDomain.includes('note.com')) {
+      if (baseDomain.includes("note.com")) {
         const noteUrl = await searchNoteArticles(baseDomain, expandedText);
         if (noteUrl) {
           return {
@@ -290,7 +300,6 @@ async function findAnswerFromPages(env, expandedText) {
       continue;
     }
 
-    // 通常の URL（固定ページ）
     let res;
     try {
       res = await fetch(pattern, { cf: { cacheTtl: 300, cacheEverything: true } });
@@ -346,12 +355,10 @@ async function findAnswer(env, userText) {
     }
   }
 
-  // FAQ のスコアがしきい値以上なら FAQ から回答
   if (best && bestScore >= MIN_FAQ_SCORE) {
     return { text: best.answer, url: null };
   }
 
-  // FAQ で十分にマッチしなかった場合は、HP / STORES / note へフォールバック
   const pageAnswer = await findAnswerFromPages(env, expanded);
   if (pageAnswer) return pageAnswer;
 
@@ -366,7 +373,6 @@ async function replyToLINE(token, replyToken, text, url = null) {
   let messages;
   
   if (url) {
-    // URL がある場合はボタンテンプレートを使用
     messages = [
       {
         type: "template",
@@ -385,7 +391,6 @@ async function replyToLINE(token, replyToken, text, url = null) {
       }
     ];
   } else {
-    // 通常のテキストメッセージ
     messages = [{ type: "text", text }];
   }
 
@@ -410,7 +415,6 @@ async function replyToLINE(token, replyToken, text, url = null) {
 export async function onRequestPost({ request, env }) {
   const rawBody = await request.text();
 
-  // 署名検証
   const sigHeader = request.headers.get("x-line-signature") || "";
   const expected = await sign(env.LINE_CHANNEL_SECRET, rawBody);
   if (sigHeader !== expected) {
