@@ -2,9 +2,8 @@
 // LINE Webhook（Cloudflare Pages Functions）
 //
 // 大原則:
-//  - 回答に使うテキストは FAQ スプレッドシート（env.SHEET_CSV_URL）
-//    と HP / 公式LINE / STORES / note（env.ALLOW_URLS に指定）に
-//    実在するものだけ。
+//  - 回答に使うテキストは FAQ スプレッドシート（env.SHEET_CSV_URL）と
+//    HP / 公式LINE / STORES / note（env.ALLOW_URLS）に実在するものだけ。
 //  - 言い方の違い（開業 / 創業、送料 / 配送料 など）は同義語テーブルで吸収する。
 //  - 信頼できる一致がない場合は「該当する回答が見つかりませんでした」で返す。
 
@@ -138,32 +137,45 @@ function normalizeJa(s) {
 }
 
 /**
- * FAQ 1 行に対する一致度。
- * 質問文（同義語展開済み）と行全体テキストを正規化し、
- * 二文字単位（バイグラム）の重なり数でスコアを出す。
+ * テキスト同士のスコア計算
+ *
+ * 1. 質問文（＋同義語）を空白で分割し、各「単語」ごとに
+ *    normalize した上で target に含まれていれば長さベースで加点。
+ *    （開業 / 創業 / 送料 などの単語に強く反応させる）
+ * 2. 全体文字列のバイグラム重なりをオマケ点として加点。
  */
-function scoreFaqItem(item, expandedText) {
-  const queryNorm = normalizeJa(expandedText);
-  if (!queryNorm) return 0;
-
-  const targetNorm = normalizeJa(item.joined || "");
+function scoreText(targetJoined, expandedText) {
+  const targetNorm = normalizeJa(targetJoined);
   if (!targetNorm) return 0;
 
-  // 完全含有なら大きく加点（長いほど高得点）
+  const words = (expandedText || "").split(/\s+/).filter(Boolean);
   let score = 0;
-  if (queryNorm.length >= 3 && targetNorm.includes(queryNorm)) {
-    score += queryNorm.length * 2;
+
+  // 単語単位の一致
+  for (const w of words) {
+    const n = normalizeJa(w);
+    if (!n) continue;
+    if (targetNorm.includes(n)) {
+      // 文字数が多いほど重くする。最低でも 2 点。
+      score += Math.max(2, n.length);
+    }
   }
 
-  if (queryNorm.length === 1) {
-    return score + (targetNorm.includes(queryNorm) ? 1 : 0);
+  // 全体文字列のバイグラム一致（オマケ点）
+  const qNorm = normalizeJa(expandedText);
+  if (qNorm.length > 1) {
+    for (let i = 0; i < qNorm.length - 1; i++) {
+      const bg = qNorm.slice(i, i + 2);
+      if (targetNorm.includes(bg)) score += 0.5;
+    }
   }
 
-  for (let i = 0; i < queryNorm.length - 1; i++) {
-    const bg = queryNorm.slice(i, i + 2);
-    if (targetNorm.includes(bg)) score++;
-  }
   return score;
+}
+
+/** FAQ 1 行に対する一致度 */
+function scoreFaqItem(item, expandedText) {
+  return scoreText(item.joined || "", expandedText);
 }
 
 /** HTML → プレーンテキスト（HP／STORES 用） */
@@ -265,29 +277,9 @@ async function loadSiteDocuments(env) {
   return docs;
 }
 
-/** ページ／記事 1 件に対する一致度（FAQ と同じくバイグラム） */
+/** ページ／記事 1 件に対する一致度 */
 function scoreDoc(doc, expandedText) {
-  const queryNorm = normalizeJa(expandedText);
-  if (!queryNorm) return 0;
-  const targetNorm = normalizeJa(doc.joined || "");
-  if (!targetNorm) return 0;
-
-  let score = 0;
-
-  // 完全含有は大きく加点
-  if (queryNorm.length >= 3 && targetNorm.includes(queryNorm)) {
-    score += queryNorm.length * 2;
-  }
-
-  if (queryNorm.length === 1) {
-    return score + (targetNorm.includes(queryNorm) ? 1 : 0);
-  }
-
-  for (let i = 0; i < queryNorm.length - 1; i++) {
-    const bg = queryNorm.slice(i, i + 2);
-    if (targetNorm.includes(bg)) score++;
-  }
-  return score;
+  return scoreText(doc.joined || "", expandedText);
 }
 
 /**
@@ -311,8 +303,8 @@ async function findAnswer(env, userText) {
       bestFaqScore = sc;
     }
   }
-  // スコアがある程度以上のときだけ採用（ゼロやごく小さい値は不採用）
-  if (bestFaq && bestFaqScore > 1) {
+  // 単語一致を重くしたので、しきい値は 2 以上に下げる
+  if (bestFaq && bestFaqScore >= 2) {
     let out = bestFaq.answer;
     if (bestFaq.source) out += `\n—\n出典: ${bestFaq.source}`;
     return out;
@@ -330,9 +322,8 @@ async function findAnswer(env, userText) {
         bestDocScore = sc;
       }
     }
-    // ページ側もスコアが十分高いときだけ URL を返す
-    // （スコア 3 未満なら「無関係」とみなして捨てる）
-    if (bestDoc && bestDocScore >= 3) {
+    // ページ側もしきい値 2 以上で採用（短い質問でも拾えるようにする）
+    if (bestDoc && bestDocScore >= 2) {
       let msg = "";
       if (bestDoc.snippet) {
         msg += bestDoc.snippet.replace(/\s+/g, " ").slice(0, 120) + "\n\n";
