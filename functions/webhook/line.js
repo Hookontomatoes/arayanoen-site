@@ -2,20 +2,20 @@
 // LINE Webhook（Cloudflare Pages Functions）
 //
 // 大原則:
-//  - 回答に使うテキストは FAQ スプレッドシートと
-//    HP / 公式LINE / STORES / note に実在するものだけ。
-//  - HP / STORES / note は ALLOW_URLS に書かれた
-//    トップページや RSS からクロールして使う。
-//  - 言い方の違い（開業 / 創業、送料 / 配送料 など）は
-//    同義語テーブルで吸収する。
+//  - 回答に使うテキストは FAQ スプレッドシート（env.SHEET_CSV_URL）
+//    と HP / 公式LINE / STORES / note（env.ALLOW_URLS に指定）に
+//    実在するものだけ。
+//  - 言い方の違い（開業 / 創業、送料 / 配送料 など）は同義語テーブルで吸収する。
+//  - 信頼できる一致がない場合は「該当する回答が見つかりませんでした」で返す。
 
 const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 
 // 同じ意味として扱いたい言葉のグループ
+// 必要に応じてここに追記してください。
 const SYNONYM_GROUPS = [
   ["開業", "創業"],
   ["送料", "配送料", "配送費"],
-  // 必要に応じてここに追記してください。
+  // ["農業体験", "体験ツアー", "農業ツアー"], など
 ];
 
 /** HMAC-SHA256 (base64) */
@@ -109,6 +109,7 @@ async function loadFaqCsv(csvUrl) {
     .map(r => {
       const cols = r.map(c => (c ?? "").trim());
 
+      // visibility
       let visibility = "public";
       if (vIdx >= 0 && vIdx < cols.length) {
         const v = (cols[vIdx] || "").trim().toLowerCase();
@@ -118,6 +119,7 @@ async function loadFaqCsv(csvUrl) {
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
       const source = sIdx >= 0 && sIdx < cols.length ? (cols[sIdx] || "").trim() : "";
 
+      // 行全体テキスト（カテゴリ・質問・回答・キーワードなど全部）
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
       return { answer, source, visibility, joined };
@@ -135,7 +137,11 @@ function normalizeJa(s) {
     .trim();
 }
 
-/** FAQ 1 行に対する一致度（バイグラムで重なり数を計算） */
+/**
+ * FAQ 1 行に対する一致度。
+ * 質問文（同義語展開済み）と行全体テキストを正規化し、
+ * 二文字単位（バイグラム）の重なり数でスコアを出す。
+ */
 function scoreFaqItem(item, expandedText) {
   const queryNorm = normalizeJa(expandedText);
   if (!queryNorm) return 0;
@@ -143,11 +149,16 @@ function scoreFaqItem(item, expandedText) {
   const targetNorm = normalizeJa(item.joined || "");
   if (!targetNorm) return 0;
 
-  if (queryNorm.length === 1) {
-    return targetNorm.includes(queryNorm) ? 1 : 0;
+  // 完全含有なら大きく加点（長いほど高得点）
+  let score = 0;
+  if (queryNorm.length >= 3 && targetNorm.includes(queryNorm)) {
+    score += queryNorm.length * 2;
   }
 
-  let score = 0;
+  if (queryNorm.length === 1) {
+    return score + (targetNorm.includes(queryNorm) ? 1 : 0);
+  }
+
   for (let i = 0; i < queryNorm.length - 1; i++) {
     const bg = queryNorm.slice(i, i + 2);
     if (targetNorm.includes(bg)) score++;
@@ -234,7 +245,7 @@ async function loadSiteDocuments(env) {
         docs.push({
           title: it.title || "",
           snippet: it.description || "",
-          url: it.link || url,
+          url: it.link || url, // 記事の link が無ければ RSS 自体
           joined: joinedNorm,
         });
       }
@@ -261,11 +272,17 @@ function scoreDoc(doc, expandedText) {
   const targetNorm = normalizeJa(doc.joined || "");
   if (!targetNorm) return 0;
 
-  if (queryNorm.length === 1) {
-    return targetNorm.includes(queryNorm) ? 1 : 0;
+  let score = 0;
+
+  // 完全含有は大きく加点
+  if (queryNorm.length >= 3 && targetNorm.includes(queryNorm)) {
+    score += queryNorm.length * 2;
   }
 
-  let score = 0;
+  if (queryNorm.length === 1) {
+    return score + (targetNorm.includes(queryNorm) ? 1 : 0);
+  }
+
   for (let i = 0; i < queryNorm.length - 1; i++) {
     const bg = queryNorm.slice(i, i + 2);
     if (targetNorm.includes(bg)) score++;
@@ -294,7 +311,8 @@ async function findAnswer(env, userText) {
       bestFaqScore = sc;
     }
   }
-  if (bestFaq && bestFaqScore > 0) {
+  // スコアがある程度以上のときだけ採用（ゼロやごく小さい値は不採用）
+  if (bestFaq && bestFaqScore > 1) {
     let out = bestFaq.answer;
     if (bestFaq.source) out += `\n—\n出典: ${bestFaq.source}`;
     return out;
@@ -302,23 +320,26 @@ async function findAnswer(env, userText) {
 
   // 2: HP / STORES / note 等
   const docs = await loadSiteDocuments(env);
-  let bestDoc = null;
-  let bestDocScore = -1;
-  for (const d of docs) {
-    const sc = scoreDoc(d, expanded);
-    if (sc > bestDocScore) {
-      bestDoc = d;
-      bestDocScore = sc;
+  if (docs.length > 0) {
+    let bestDoc = null;
+    let bestDocScore = -1;
+    for (const d of docs) {
+      const sc = scoreDoc(d, expanded);
+      if (sc > bestDocScore) {
+        bestDoc = d;
+        bestDocScore = sc;
+      }
     }
-  }
-  // しきい値: スコア 2 未満なら「関連なし」とみなして捨てる
-  if (bestDoc && bestDocScore >= 2) {
-    let msg = "";
-    if (bestDoc.snippet) {
-      msg += bestDoc.snippet.replace(/\s+/g, " ").slice(0, 160) + "\n\n";
+    // ページ側もスコアが十分高いときだけ URL を返す
+    // （スコア 3 未満なら「無関係」とみなして捨てる）
+    if (bestDoc && bestDocScore >= 3) {
+      let msg = "";
+      if (bestDoc.snippet) {
+        msg += bestDoc.snippet.replace(/\s+/g, " ").slice(0, 120) + "\n\n";
+      }
+      msg += "この内容については、次のページに記載があります。\n" + bestDoc.url;
+      return msg;
     }
-    msg += "この内容については、次のページに記載があります。\n" + bestDoc.url;
-    return msg;
   }
 
   // 3: 何も見つからない場合
