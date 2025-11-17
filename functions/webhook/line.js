@@ -5,8 +5,19 @@
 //  - FAQスプレッドシート（env.SHEET_CSV_URL）
 //  - HP / 公式LINE / STORES / note 等（env.ALLOW_URLS）
 // に書いてある内容だけから回答する。
+//   → 回答テキストは必ずこれらのどこかに実在するものだけ。
+//   → ただし、言い方の違い（開業 / 創業 など）はここで定義した同義語として扱う。
 
 const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
+
+// ここに「同じ意味として扱いたい言葉」をグループで列挙してください。
+// 例: 開業 と 創業 を同じとして扱いたいなら ["開業", "創業"]
+//     送料 / 配送料 / 配送費 を同じとして扱いたいなら ["送料", "配送料", "配送費"]
+const SYNONYM_GROUPS = [
+  ["開業", "創業"],
+  ["送料", "配送料", "配送費"],
+  // 必要に応じて追加してください。
+];
 
 /** HMAC-SHA256 (base64) */
 async function sign(secret, bodyText) {
@@ -24,10 +35,31 @@ async function sign(secret, bodyText) {
   return btoa(binary);
 }
 
+/** 質問文に同義語を足す（マッチング専用。回答文は改変しない） */
+function expandWithSynonyms(text) {
+  if (!text) return "";
+  const base = String(text);
+  let result = base;
+  for (const group of SYNONYM_GROUPS) {
+    let hit = false;
+    for (const w of group) {
+      if (base.includes(w)) { hit = true; break; }
+    }
+    if (hit) {
+      for (const w of group) {
+        if (!result.includes(w)) {
+          result += " " + w;
+        }
+      }
+    }
+  }
+  return result;
+}
+
 /**
  * FAQ CSV を読み込む。
  *
- * 列配置（1行目はヘッダ想定だが、名前は厳密には使わない）:
+ * 列配置（1行目はヘッダ想定）:
  *   A: id
  *   B: category
  *   C: question
@@ -101,7 +133,7 @@ async function loadFaqCsv(csvUrl) {
       const source = sIdx >= 0 && sIdx < cols.length ? (cols[sIdx] || "").trim() : "";
 
       // 行全体テキスト（カテゴリ・質問・回答・キーワードなど全部）
-      const joined = cols.join(" ").replace(/\s+/g, " ").toLowerCase();
+      const joined = cols.join(" ").replace(/\s+/g, " ");
 
       return { answer, source, visibility, joined };
     })
@@ -110,15 +142,36 @@ async function loadFaqCsv(csvUrl) {
   return items;
 }
 
+/** 日本語テキストをマッチング用に正規化 */
+function normalizeJa(s) {
+  return (s || "")
+    .toLowerCase()
+    .replace(/[！!？?。、．，,・･「」『』【】［］\[\]\(\)（）\s]/g, "")
+    .trim();
+}
+
 /**
  * FAQ 1 行に対する一致度。
- * 「行全体テキスト joined に、ユーザー入力が含まれているか」で見るだけの単純版。
+ * 質問文（同義語展開済み）と行全体テキストを正規化し、
+ * 二文字単位（バイグラム）の重なり数でスコアを出す。
  */
-function scoreFaqItem(item, text) {
-  const q = (text || "").toLowerCase().trim();
-  if (!q) return 0;
-  if (!item.joined) return 0;
-  return item.joined.includes(q) ? q.length + 1 : 0;
+function scoreFaqItem(item, expandedText) {
+  const queryNorm = normalizeJa(expandedText);
+  if (!queryNorm) return 0;
+
+  const targetNorm = normalizeJa(item.joined || "");
+  if (!targetNorm) return 0;
+
+  if (queryNorm.length === 1) {
+    return targetNorm.includes(queryNorm) ? 1 : 0;
+  }
+
+  let score = 0;
+  for (let i = 0; i < queryNorm.length - 1; i++) {
+    const bg = queryNorm.slice(i, i + 2);
+    if (targetNorm.includes(bg)) score++;
+  }
+  return score;
 }
 
 /** HTML → プレーンテキスト（HP／STORES／note 用） */
@@ -135,35 +188,23 @@ function htmlToText(html) {
     .trim();
 }
 
-/** 日本語テキストをマッチング用に正規化 */
-function normalizeJa(s) {
-  return (s || "")
-    .toLowerCase()
-    .replace(/[！!？?。、．，,・･「」『』【】［］\[\]\(\)（）\s]/g, "")
-    .trim();
-}
-
 /**
  * env.ALLOW_URLS に列挙した URL 群（HP / 公式LINE案内ページ / STORES商品ページ / note 記事など）
- * からテキストを取得し、質問文と近いページを一つ選んで返す。
+ * からテキストを取得し、質問文（同義語展開済み）と近いページを一つ選んで返す。
  *
  * 「改行」だけでなく「カンマ」区切りにも対応。
- * 例:
- *   https://a.example.com/,
- *   https://b.example.com/,
  */
-async function findAnswerFromPages(env, userText) {
+async function findAnswerFromPages(env, expandedText) {
   const urls = (env.ALLOW_URLS || "")
-    .split(/[\s,]+/)          // 改行・スペース・カンマ すべて区切りとみなす
+    .split(/[\s,]+/)
     .map(u => u.trim())
     .filter(Boolean);
 
   if (!urls.length) return null;
 
-  const queryNorm = normalizeJa(userText);
+  const queryNorm = normalizeJa(expandedText);
   if (!queryNorm || queryNorm.length < 2) return null;
 
-  // 質問文の二文字ずつ（バイグラム）を作る
   const bigrams = [];
   for (let i = 0; i < queryNorm.length - 1; i++) {
     bigrams.push(queryNorm.slice(i, i + 2));
@@ -192,13 +233,8 @@ async function findAnswerFromPages(env, userText) {
     if (!pageNorm) continue;
 
     let score = 0;
-
-    // 全体一致があれば大きく加点
-    if (pageNorm.includes(queryNorm)) score += queryNorm.length * 2;
-
-    // 二文字単位でどれだけ含まれるかを見る
     for (const bg of bigrams) {
-      if (pageNorm.includes(bg)) score += 1;
+      if (pageNorm.includes(bg)) score++;
     }
 
     if (score > bestScore) {
@@ -209,23 +245,24 @@ async function findAnswerFromPages(env, userText) {
 
   if (!bestUrl || bestScore === 0) return null;
 
-  // ページ本文からの要約までは行わず、「ここに載っています」と案内する
   return `この内容については、次のページに記載があります。\n${bestUrl}`;
 }
 
 /**
  * 質問 → 回答
- * 1. FAQ 行全体にユーザー入力が含まれていれば、その行の D列(answer) を返す
- * 2. 見つからなければ HP / STORES / note 等（ALLOW_URLS）
+ * 1. FAQ 行全体と質問文（＋同義語）を付き合わせて、一番スコアが高い行の D列(answer) を返す
+ * 2. 見つからなければ HP / STORES / note 等（ALLOW_URLS）から一番近いページ URL を返す
  * 3. それでも無ければフォールバック
  */
 async function findAnswer(env, userText) {
+  const expanded = expandWithSynonyms(userText || "");
+
   const items = await loadFaqCsv(env.SHEET_CSV_URL);
 
   let best = null;
   let bestScore = -1;
   for (const it of items) {
-    const sc = scoreFaqItem(it, userText);
+    const sc = scoreFaqItem(it, expanded);
     if (sc > bestScore) {
       best = it;
       bestScore = sc;
@@ -238,7 +275,7 @@ async function findAnswer(env, userText) {
     return out;
   }
 
-  const pageAnswer = await findAnswerFromPages(env, userText);
+  const pageAnswer = await findAnswerFromPages(env, expanded);
   if (pageAnswer) return pageAnswer;
 
   return "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。";
