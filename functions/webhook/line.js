@@ -59,6 +59,12 @@ function expandWithSynonyms(text) {
 
 /**
  * FAQ CSV を読み込む。
+ *
+ * 列の想定:
+ *   - question              … 質問文（あれば優先してマッチングに使用）
+ *   - answer                … 回答文
+ *   - visibility            … public の行だけ回答候補にする（無ければすべて public 扱い）
+ *   - source_url_or_note 等 … あっても無視（マッチングにも回答にも使わない）
  */
 async function loadFaqCsv(csvUrl) {
   const res = await fetch(csvUrl, { cf: { cacheTtl: 60, cacheEverything: true } });
@@ -92,13 +98,15 @@ async function loadFaqCsv(csvUrl) {
   const headerIdx = (name) => header.findIndex(h => h === name.toLowerCase());
 
   const vIdx = headerIdx("visibility");
+  const qIdx = headerIdx("question");
   let aIdx = headerIdx("answer");
-  if (aIdx === -1) aIdx = 3;
+  if (aIdx === -1) aIdx = 3; // 互換用: 4列目を answer とみなす
 
   const items = rows
     .map(r => {
       const cols = r.map(c => (c ?? "").trim());
 
+      // visibility 列（なければ public）
       let visibility = "public";
       if (vIdx >= 0 && vIdx < cols.length) {
         const v = (cols[vIdx] || "").trim().toLowerCase();
@@ -106,9 +114,11 @@ async function loadFaqCsv(csvUrl) {
       }
 
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
+      const question = qIdx >= 0 && qIdx < cols.length ? (cols[qIdx] || "").trim() : "";
+      // 検索用テキスト: すべての列を結合（旧実装との互換用・フォールバック用）
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
-      return { answer, visibility, joined };
+      return { answer, question, visibility, joined };
     })
     .filter(x => x.visibility === "public" && x.answer);
 
@@ -125,12 +135,15 @@ function normalizeJa(s) {
 
 /**
  * FAQ 1 行に対する一致度。
+ * 優先的に question 列だけを見てスコアリングし、
+ * question が無い場合のみ joined（全列）で評価します。
  */
 function scoreFaqItem(item, expandedText) {
   const queryNorm = normalizeJa(expandedText);
   if (!queryNorm) return 0;
 
-  const targetNorm = normalizeJa(item.joined || "");
+  const targetText = item.question || item.joined || "";
+  const targetNorm = normalizeJa(targetText);
   if (!targetNorm) return 0;
 
   if (queryNorm.length === 1) {
@@ -338,6 +351,7 @@ async function findAnswer(env, userText) {
     return { text: best.answer, url: null };
   }
 
+  // FAQ で十分にマッチしなかった場合は、HP / STORES / note へフォールバック
   const pageAnswer = await findAnswerFromPages(env, expanded);
   if (pageAnswer) return pageAnswer;
 
