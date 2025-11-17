@@ -115,7 +115,7 @@ async function loadFaqCsv(csvUrl) {
 
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
       const question = qIdx >= 0 && qIdx < cols.length ? (cols[qIdx] || "").trim() : "";
-      // 検索用テキスト: すべての列を結合（旧実装との互換用・フォールバック用）
+      // 検索用テキスト: すべての列を結合（互換用）
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
       return { answer, question, visibility, joined };
@@ -136,40 +136,35 @@ function normalizeJa(s) {
 /**
  * FAQ 1 行に対する一致度。
  *
- * 優先的に question 列だけを見てスコアリングし、
- * question が無い場合のみ joined（全列）で評価します。
+ * ここでは「ほぼ同じ文かどうか」だけを見る、かなり保守的な判定にします。
  *
- * さらに、「ユーザー質問の先頭一文字」が FAQ 側テキストに
- * 一度も出てこない場合は、強制的にスコアを 0 にします。
- * これにより「圃場はどこですか？」で「場所はメッセージでご案内」
- * などの回答を拾わないようにします。
+ * ルール:
+ *   1. ユーザー質問と FAQ 質問を正規化した文字列で比較
+ *   2. 完全一致なら高得点
+ *   3. どちらか一方がもう一方を含んでいればマッチ（部分一致）
+ *   4. それ以外はスコア 0（マッチしない扱い）
+ *
+ * これにより、「圃場はどこにありますか？」と
+ * 「圃場、収穫日、ロットで追跡可能ですか？」のような
+ * 方向性の違う質問はマッチしなくなります。
  */
-function scoreFaqItem(item, expandedText) {
-  const rawQuery = expandedText || "";
-  const targetRaw = item.question || item.joined || "";
-
-  // 先頭一文字チェック（例: 「圃場は…」なら「圃」が含まれていなければ 0 点）
-  const firstChar = rawQuery.trim().charAt(0);
-  if (firstChar && !targetRaw.includes(firstChar)) {
-    return 0;
-  }
-
-  const queryNorm = normalizeJa(rawQuery);
+function scoreFaqItem(item, userText) {
+  const queryNorm = normalizeJa(userText);
   if (!queryNorm) return 0;
 
-  const targetNorm = normalizeJa(targetRaw);
+  const targetText = item.question || item.joined || "";
+  const targetNorm = normalizeJa(targetText);
   if (!targetNorm) return 0;
 
-  if (queryNorm.length === 1) {
-    return targetNorm.includes(queryNorm) ? 1 : 0;
+  if (targetNorm === queryNorm) {
+    return targetNorm.length * 2;
   }
 
-  let score = 0;
-  for (let i = 0; i < queryNorm.length - 1; i++) {
-    const bg = queryNorm.slice(i, i + 2);
-    if (targetNorm.includes(bg)) score++;
+  if (targetNorm.includes(queryNorm) || queryNorm.includes(targetNorm)) {
+    return Math.min(targetNorm.length, queryNorm.length);
   }
-  return score;
+
+  return 0;
 }
 
 /** HTML → プレーンテキスト */
@@ -336,14 +331,15 @@ async function findAnswerFromPages(env, expandedText) {
  * 質問 → 回答
  */
 async function findAnswer(env, userText) {
-  const expanded = expandWithSynonyms(userText || "");
+  const raw = userText || "";
+  const expanded = expandWithSynonyms(raw);
 
   const items = await loadFaqCsv(env.SHEET_CSV_URL);
 
   let best = null;
   let bestScore = -1;
   for (const it of items) {
-    const sc = scoreFaqItem(it, expanded);
+    const sc = scoreFaqItem(it, raw);
     if (sc > bestScore) {
       best = it;
       bestScore = sc;
