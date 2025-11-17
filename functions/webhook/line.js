@@ -12,7 +12,7 @@ const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 async function sign(secret, bodyText) {
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(secret),
+    new TextEncoder().encode(bodyText ? secret : ""),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -112,7 +112,7 @@ async function loadFaqCsv(csvUrl) {
 
 /**
  * FAQ 1 行に対する一致度。
- * 単純に「行全体テキスト joined に、ユーザー入力が含まれているか」で見る。
+ * 「行全体テキスト joined に、ユーザー入力が含まれているか」で見るだけの単純版。
  */
 function scoreItem(item, text) {
   const q = (text || "").toLowerCase().trim();
@@ -138,10 +138,15 @@ function htmlToText(html) {
 /**
  * env.ALLOW_URLS に列挙した URL 群（HP / 公式LINE案内ページ / STORES商品ページ / note 記事など）
  * からテキストを取得し、質問文と近い箇所を抜き出して返す。
+ *
+ * 「改行」だけでなく「カンマ」区切りにも対応。
+ * 例:
+ *   https://a.example.com/,
+ *   https://b.example.com/,
  */
 async function findAnswerFromPages(env, userText) {
   const urls = (env.ALLOW_URLS || "")
-    .split(/\r?\n/)
+    .split(/[\s,]+/)          // 改行・スペース・カンマ すべて区切りとみなす
     .map(u => u.trim())
     .filter(Boolean);
 
