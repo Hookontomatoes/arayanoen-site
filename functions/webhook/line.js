@@ -2,10 +2,9 @@
 // LINE Webhook（Cloudflare Pages Functions）
 //
 // 大原則:
-//  - スプレッドシートの FAQ（env.SHEET_CSV_URL）
-//  - HP / 公式LINE / STORES / note などの公開ページ（env.ALLOW_URLS に列挙）
-// に「書いてあること」だけから回答を返す。
-// それ以外の知ったかぶりは一切しない。
+//  - FAQスプレッドシート（env.SHEET_CSV_URL）
+//  - HP / 公式LINE / STORES / note 等（env.ALLOW_URLS）
+// に書いてある内容だけから回答する。
 
 const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 
@@ -19,7 +18,6 @@ async function sign(secret, bodyText) {
     ["sign"]
   );
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(bodyText));
-  // base64
   let binary = "";
   const bytes = new Uint8Array(sig);
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
@@ -27,22 +25,27 @@ async function sign(secret, bodyText) {
 }
 
 /**
- * CSV を配列に。
- * 必要な列:
- *   - answer（必須）
- * 任意の列（あればマッチングに使う）:
- *   - question
- *   - category_or_question
- *   - keywords / keywords(optional)
- *   - source_url_or_note
- *   - visibility（public の行だけ有効）
+ * FAQ CSV を読み込む。
+ *
+ * 列配置（1行目はヘッダ想定だが、名前は厳密には使わない）:
+ *   A: id
+ *   B: category
+ *   C: question
+ *   D: answer  ← ここを「回答」として返す
+ *   E: keywords(optional)
+ *   F: LINE/SN
+ *   G: source_url_or_note
+ *   ...
+ *   L: visibility（public の行だけ有効）
+ *
+ * マッチングは「その行の全セルを結合したテキスト」に対して行う。
  */
 async function loadFaqCsv(csvUrl) {
   const res = await fetch(csvUrl, { cf: { cacheTtl: 60, cacheEverything: true } });
   if (!res.ok) throw new Error(`CSV fetch failed: ${res.status}`);
   const text = await res.text();
 
-  // 簡易 CSV パーサ（ダブルクォート対応・改行対応）
+  // 簡易 CSV パーサ（ダブルクォート対応）
   const rows = [];
   let i = 0, field = "", inQuote = false, row = [];
   while (i < text.length) {
@@ -63,84 +66,62 @@ async function loadFaqCsv(csvUrl) {
   }
   row.push(field); rows.push(row);
 
-  if (rows.length === 0) return [];
+  if (rows.length <= 1) return [];
 
-  // ヘッダ解決
+  // 1行目はヘッダとして捨てる（列名はほぼ使わない）
   const header = rows.shift().map(h => h.trim().toLowerCase());
-  const idx = (name) => header.findIndex(h => h === name.toLowerCase());
+  const headerIdx = (name) => header.findIndex(h => h === name.toLowerCase());
 
-  const qIdx  = idx("question");
-  const cIdx  = idx("category_or_question");
-  const aIdx  = idx("answer");
-  const sIdx  = idx("source_url_or_note");
-  const kIdx  = idx("keywords(optional)") !== -1 ? idx("keywords(optional)") : idx("keywords");
-  const vIdx  = idx("visibility");
+  // visibility 列の位置（無ければ -1）
+  const vIdx = headerIdx("visibility");
 
-  const maxIdx = Math.max(qIdx, cIdx, aIdx, sIdx, kIdx, vIdx);
+  // answer 列の位置：ヘッダに answer が無ければ「D列（インデックス3）」を使う
+  let aIdx = headerIdx("answer");
+  if (aIdx === -1) aIdx = 3; // 0:A,1:B,2:C,3:D
+
+  // source 列（任意）
+  let sIdx = headerIdx("source_url_or_note");
+  if (sIdx === -1) sIdx = -1;
 
   const items = rows
-    .filter(r => r.length > maxIdx && aIdx >= 0 && r[aIdx] != null && r[aIdx].trim() !== "")
     .map(r => {
-      const question  = qIdx >= 0 ? (r[qIdx] ?? "").trim() : "";
-      const category  = cIdx >= 0 ? (r[cIdx] ?? "").trim() : "";
-      const answer    = aIdx >= 0 ? (r[aIdx] ?? "").trim() : "";
-      const source    = sIdx >= 0 ? (r[sIdx] ?? "").trim() : "";
-      const keywords  = kIdx >= 0 ? (r[kIdx] ?? "").trim() : "";
-      const visibility= vIdx >= 0 ? (r[vIdx] ?? "").trim().toLowerCase() : "public";
+      const cols = r.map(c => (c ?? "").trim());
 
-      // マッチング用テキスト（質問・カテゴリ・キーワード・回答・出典を全部まとめる）
-      const searchableText = [
-        question,
-        category,
-        keywords,
-        answer,
-        source
-      ].filter(Boolean).join(" ").toLowerCase();
+      // 可視性
+      let visibility = "public";
+      if (vIdx >= 0 && vIdx < cols.length) {
+        const v = (cols[vIdx] || "").trim().toLowerCase();
+        if (v) visibility = v;
+      }
 
-      return {
-        question,
-        category,
-        answer,
-        source,
-        keywords,
-        visibility,
-        searchableText,
-      };
+      // 回答（D列前提 / または answer 列）
+      const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
+
+      // 出典
+      const source = sIdx >= 0 && sIdx < cols.length ? (cols[sIdx] || "").trim() : "";
+
+      // 行全体テキスト（カテゴリ・質問・回答・キーワードなど全部）
+      const joined = cols.join(" ").replace(/\s+/g, " ").toLowerCase();
+
+      return { answer, source, visibility, joined };
     })
-    .filter(x => x.visibility === "public");
+    .filter(x => x.visibility === "public" && x.answer);
 
   return items;
 }
 
-/** ごく簡易な一致度（FAQ 1 行に対するスコア） */
+/**
+ * FAQ 1 行に対する一致度。
+ * 単純に「行全体テキスト joined に、ユーザー入力が含まれているか」で見る。
+ */
 function scoreItem(item, text) {
-  const t = text.toLowerCase();
-  let s = 0;
-
-  // 質問文・カテゴリ・回答にそのまま含まれていれば高めに加点
-  const mainFields = [item.question, item.category, item.answer];
-  for (const f of mainFields) {
-    if (f && t && f.toLowerCase().includes(t)) s += 4;
-    if (f && t && t.includes(f.toLowerCase()) && f.length >= 4) s += 3;
-  }
-
-  // キーワード列
-  const kws = (item.keywords || "").split(/[,\s]+/).filter(Boolean);
-  for (const kw of kws) {
-    const k = kw.toLowerCase();
-    if (t.includes(k)) s += 2;
-  }
-
-  // 部分一致：ユーザー入力の単語ごとに、行全体のテキストに含まれるか
-  const words = t.split(/\s+/).filter(w => w.length >= 2);
-  for (const w of words) {
-    if (item.searchableText.includes(w)) s += 0.5;
-  }
-
-  return s;
+  const q = (text || "").toLowerCase().trim();
+  if (!q) return 0;
+  if (!item.joined) return 0;
+  return item.joined.includes(q) ? q.length + 1 : 0;
 }
 
-/** HTML → プレーンテキスト（HP／STORES／note など用） */
+/** HTML → プレーンテキスト（HP／STORES／note 用） */
 function htmlToText(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -155,10 +136,8 @@ function htmlToText(html) {
 }
 
 /**
- * env.ALLOW_URLS に列挙した URL 群（HP／公式LINEの案内ページ／STORES商品ページ／note記事など）
- * からテキストを取得し、ユーザーの質問と近い箇所を抜き出して返す。
- *
- * env.ALLOW_URLS には、改行区切りで URL を列挙する想定。
+ * env.ALLOW_URLS に列挙した URL 群（HP / 公式LINE案内ページ / STORES商品ページ / note 記事など）
+ * からテキストを取得し、質問文と近い箇所を抜き出して返す。
  */
 async function findAnswerFromPages(env, userText) {
   const urls = (env.ALLOW_URLS || "")
@@ -168,8 +147,10 @@ async function findAnswerFromPages(env, userText) {
 
   if (!urls.length) return null;
 
-  const query = userText.toLowerCase();
-  const words = query.split(/\s+/).filter(w => w.length >= 2);
+  const query = (userText || "").toLowerCase().trim();
+  if (!query) return null;
+
+  const words = query.split(/\s+/).filter(Boolean);
 
   let bestUrl = null;
   let bestScore = 0;
@@ -194,6 +175,7 @@ async function findAnswerFromPages(env, userText) {
     const lower = plain.toLowerCase();
 
     let score = 0;
+    if (lower.includes(query)) score += 5;
     for (const w of words) {
       if (lower.includes(w)) score += 1;
     }
@@ -202,10 +184,12 @@ async function findAnswerFromPages(env, userText) {
       bestScore = score;
       bestUrl = url;
 
-      let pos = -1;
-      for (const w of words) {
-        pos = lower.indexOf(w);
-        if (pos !== -1) break;
+      let pos = lower.indexOf(query);
+      if (pos === -1 && words.length) {
+        for (const w of words) {
+          pos = lower.indexOf(w);
+          if (pos !== -1) break;
+        }
       }
       if (pos === -1) pos = 0;
 
@@ -227,15 +211,13 @@ async function findAnswerFromPages(env, userText) {
 
 /**
  * 質問 → 回答
- * 優先順:
- *  1. FAQ スプレッドシート（env.SHEET_CSV_URL）
- *  2. HP／公式LINE／STORES／note のページ（env.ALLOW_URLS）
- *  3. どこにも無ければフォールバックメッセージ
+ * 1. FAQ 行全体にユーザー入力が含まれていれば、その行の D列(answer) を返す
+ * 2. 見つからなければ HP / STORES / note 等（ALLOW_URLS）
+ * 3. それでも無ければフォールバック
  */
 async function findAnswer(env, userText) {
   const items = await loadFaqCsv(env.SHEET_CSV_URL);
 
-  // まず FAQ（CSV）でスコアリング
   let best = null;
   let bestScore = -1;
   for (const it of items) {
@@ -246,18 +228,15 @@ async function findAnswer(env, userText) {
     }
   }
 
-  // FAQ から十分な一致があればそれを返す
-  if (best && bestScore >= 1) {
+  if (best && bestScore > 0) {
     let out = best.answer;
     if (best.source) out += `\n—\n出典: ${best.source}`;
     return out;
   }
 
-  // FAQ に明確な候補が無ければ、HP／公式LINE／STORES／note を検索
   const pageAnswer = await findAnswerFromPages(env, userText);
   if (pageAnswer) return pageAnswer;
 
-  // それでも見つからない場合だけ、フォールバック
   return "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。";
 }
 
@@ -294,7 +273,6 @@ export async function onRequestPost({ request, env }) {
 
   const body = JSON.parse(rawBody);
 
-  // 複数イベントに対応
   for (const ev of body.events || []) {
     if (ev.type === "message" && ev.message?.type === "text") {
       try {
@@ -308,7 +286,6 @@ export async function onRequestPost({ request, env }) {
         );
       }
     } else {
-      // 画像などテキスト以外が来た場合の最低限の返答
       if (ev.replyToken) {
         await replyToLINE(env.LINE_CHANNEL_TOKEN, ev.replyToken, "テキストでご質問ください。");
       }
