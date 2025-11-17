@@ -17,6 +17,9 @@ const SYNONYM_GROUPS = [
   // 必要に応じて追加してください。
 ];
 
+// FAQ マッチングの最低スコア
+const MIN_FAQ_SCORE = 3;
+
 /** HMAC-SHA256 (base64) */
 async function sign(secret, bodyText) {
   const key = await crypto.subtle.importKey(
@@ -91,8 +94,6 @@ async function loadFaqCsv(csvUrl) {
   const vIdx = headerIdx("visibility");
   let aIdx = headerIdx("answer");
   if (aIdx === -1) aIdx = 3;
-  let sIdx = headerIdx("source_url_or_note");
-  if (sIdx === -1) sIdx = -1;
 
   const items = rows
     .map(r => {
@@ -105,10 +106,9 @@ async function loadFaqCsv(csvUrl) {
       }
 
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
-      const source = sIdx >= 0 && sIdx < cols.length ? (cols[sIdx] || "").trim() : "";
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
-      return { answer, source, visibility, joined };
+      return { answer, visibility, joined };
     })
     .filter(x => x.visibility === "public" && x.answer);
 
@@ -333,10 +333,9 @@ async function findAnswer(env, userText) {
     }
   }
 
-  if (best && bestScore > 0) {
-    let out = best.answer;
-    if (best.source) out += `\n—\n出典: ${best.source}`;
-    return { text: out, url: null };
+  // FAQ のスコアがしきい値以上なら FAQ から回答
+  if (best && bestScore >= MIN_FAQ_SCORE) {
+    return { text: best.answer, url: null };
   }
 
   const pageAnswer = await findAnswerFromPages(env, expanded);
