@@ -3,8 +3,8 @@
 //
 // ・FAQ スプレッドシート（env.SHEET_CSV_URL）
 // ・HP / STORES / note / 他（env.ALLOW_URLS）
-// に「書いてあることだけ」を元に回答する。
-// note の /rss などは RSS として読み、各 <item> の記事 URL を返す。
+// に「書いてあることだけ」で回答する。
+// note の /rss などは RSS として読み、各 <item> の記事 URL を使う。
 
 const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 
@@ -26,7 +26,9 @@ async function sign(secret, bodyText) {
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(bodyText));
   let binary = "";
   const bytes = new Uint8Array(sig);
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
   return btoa(binary);
 }
 
@@ -97,7 +99,7 @@ async function loadFaqCsv(csvUrl) {
   for (const r of rows) {
     const cols = r.map(c => (c ?? "").trim());
 
-    // visibility
+    // visibility（列がなければ全て public）
     let visibility = "public";
     if (vIdx >= 0 && vIdx < cols.length) {
       const v = (cols[vIdx] || "").trim().toLowerCase();
@@ -121,49 +123,27 @@ async function loadFaqCsv(csvUrl) {
   return items;
 }
 
-/** 日本語テキストをマッチング用に正規化 */
-function normalizeJa(s) {
-  return (s || "")
-    .toLowerCase()
-    .replace(/[！!？?。、．，,・･「」『』【】［］\[\]\(\)（）\s]/g, "")
-    .trim();
-}
-
 /**
- * テキスト同士のスコア計算
- *
- * 優先順位:
- *  1) 質問全文（＋同義語展開）そのものが含まれていれば大きく加点
- *  2) 質問を空白で区切った「単語」（開業 / 創業 など）が含まれていれば加点
- *  3) それでも何もヒットしないときだけ、バイグラムの重なりをおまけ点として使う
+ * 単純な「含まれているか」ベースのスコア。
+ * targetText の中に expandedText や、その中の単語がどれくらい含まれているか。
  */
-function scoreText(targetJoined, expandedText) {
-  const targetNorm = normalizeJa(targetJoined);
-  const qNorm = normalizeJa(expandedText);
-  if (!targetNorm || !qNorm) return 0;
+function scoreByIncludes(targetText, expandedText) {
+  const t = (targetText || "").toLowerCase();
+  const q = (expandedText || "").toLowerCase().trim();
+  if (!t || !q) return 0;
 
   let score = 0;
 
-  // 1: 質問全文が含まれているか
-  if (targetNorm.includes(qNorm)) {
-    score += Math.max(30, qNorm.length * 2);
+  // 質問全体がそのまま含まれていれば大きく加点
+  if (t.includes(q)) {
+    score += q.length * 10;
   }
 
-  // 2: 単語単位（主に同義語展開用）
-  const words = expandedText.split(/\s+/).filter(Boolean);
+  // 質問を空白で区切った単語ごとに加点（同義語展開もここに効く）
+  const words = Array.from(new Set(q.split(/\s+/).filter(Boolean)));
   for (const w of words) {
-    const n = normalizeJa(w);
-    if (!n) continue;
-    if (targetNorm.includes(n)) {
-      score += Math.max(8, n.length * 2);
-    }
-  }
-
-  // 3: ここまでで全くヒットしていない場合のみ、バイグラムでおまけ点
-  if (score === 0 && qNorm.length > 1) {
-    for (let i = 0; i < qNorm.length - 1; i++) {
-      const bg = qNorm.slice(i, i + 2);
-      if (targetNorm.includes(bg)) score += 0.7;
+    if (t.includes(w)) {
+      score += w.length * 2;
     }
   }
 
@@ -172,10 +152,10 @@ function scoreText(targetJoined, expandedText) {
 
 /** FAQ 1 行に対する一致度 */
 function scoreFaqItem(item, expandedText) {
-  return scoreText(item.search || "", expandedText);
+  return scoreByIncludes(item.search || "", expandedText);
 }
 
-/** HTML → プレーンテキスト（HP／STORES 用） */
+/** HTML → プレーンテキスト（HP／STORES 用。タグを全部はがすだけ） */
 function htmlToText(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -215,7 +195,7 @@ function parseRss(text) {
     const title = getTagText("title");
     const desc = getTagText("description");
 
-    let link = getTagText("link"); // <link>...</link> パターン
+    let link = getTagText("link"); // <link>本文</link> パターン
     if (!link) {
       const hrefMatch = block.match(/<link[^>]+href="([^"]+)"[^>]*\/?>/i);
       if (hrefMatch) link = hrefMatch[1].trim();
@@ -292,7 +272,7 @@ async function loadSiteDocuments(env) {
 
 /** ページ／記事 1 件に対する一致度 */
 function scoreDoc(doc, expandedText) {
-  return scoreText(doc.joined || "", expandedText);
+  return scoreByIncludes(doc.joined || "", expandedText);
 }
 
 /**
@@ -307,7 +287,7 @@ async function findAnswer(env, userText) {
   // 1: FAQ
   const faqItems = await loadFaqCsv(env.SHEET_CSV_URL);
   let bestFaq = null;
-  let bestFaqScore = -1;
+  let bestFaqScore = 0;
   for (const it of faqItems) {
     const sc = scoreFaqItem(it, expanded);
     if (sc > bestFaqScore) {
@@ -315,7 +295,7 @@ async function findAnswer(env, userText) {
       bestFaqScore = sc;
     }
   }
-  // スコア 5 以上なら採用（短い質問でも通るように）
+  // スコア 5 以上なら採用
   if (bestFaq && bestFaqScore >= 5) {
     let out = bestFaq.answer;
     if (bestFaq.source) out += `\n—\n出典: ${bestFaq.source}`;
@@ -326,7 +306,7 @@ async function findAnswer(env, userText) {
   const docs = await loadSiteDocuments(env);
   if (docs.length > 0) {
     let bestDoc = null;
-    let bestDocScore = -1;
+    let bestDocScore = 0;
     for (const d of docs) {
       const sc = scoreDoc(d, expanded);
       if (sc > bestDocScore) {
