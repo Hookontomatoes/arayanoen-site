@@ -2,21 +2,20 @@
 // LINE Webhook（Cloudflare Pages Functions）
 //
 // 大原則:
-//  - FAQスプレッドシート（env.SHEET_CSV_URL）
-//  - HP / 公式LINE / STORES / note 等（env.ALLOW_URLS）
-// に書いてある内容だけから回答する。
-//   → 回答テキストは必ずこれらのどこかに実在するものだけ。
-//   → ただし、言い方の違い（開業 / 創業 など）はここで定義した同義語として扱う。
+//  - 回答に使うテキストは FAQ スプレッドシートと
+//    HP / 公式LINE / STORES / note に実在するものだけ。
+//  - HP / STORES / note は ALLOW_URLS に書かれた
+//    トップページや RSS からクロールして使う。
+//  - 言い方の違い（開業 / 創業、送料 / 配送料 など）は
+//    同義語テーブルで吸収する。
 
 const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 
-// ここに「同じ意味として扱いたい言葉」をグループで列挙してください。
-// 例: 開業 と 創業 を同じとして扱いたいなら ["開業", "創業"]
-//     送料 / 配送料 / 配送費 を同じとして扱いたいなら ["送料", "配送料", "配送費"]
+// 同じ意味として扱いたい言葉のグループ
 const SYNONYM_GROUPS = [
   ["開業", "創業"],
   ["送料", "配送料", "配送費"],
-  // 必要に応じて追加してください。
+  // 必要に応じてここに追記してください。
 ];
 
 /** HMAC-SHA256 (base64) */
@@ -59,18 +58,14 @@ function expandWithSynonyms(text) {
 /**
  * FAQ CSV を読み込む。
  *
- * 列配置（1行目はヘッダ想定）:
+ * 列配置（1行目はヘッダ。名前はだいたい次を想定）:
  *   A: id
- *   B: category
- *   C: question
- *   D: answer  ← ここを「回答」として返す
- *   E: keywords(optional)
- *   F: LINE/SN
- *   G: source_url_or_note
- *   ...
+ *   B: category_or_question
+ *   C: question（任意）
+ *   D: answer  ← 回答として返す
+ *   E: keywords(optional) / keywords
+ *   G: source_url_or_note（元ページの URL やメモ）
  *   L: visibility（public の行だけ有効）
- *
- * マッチングは「その行の全セルを結合したテキスト」に対して行う。
  */
 async function loadFaqCsv(csvUrl) {
   const res = await fetch(csvUrl, { cf: { cacheTtl: 60, cacheEverything: true } });
@@ -100,18 +95,13 @@ async function loadFaqCsv(csvUrl) {
 
   if (rows.length <= 1) return [];
 
-  // 1行目はヘッダとして捨てる（列名はほぼ使わない）
+  // ヘッダ行
   const header = rows.shift().map(h => h.trim().toLowerCase());
   const headerIdx = (name) => header.findIndex(h => h === name.toLowerCase());
 
-  // visibility 列の位置（無ければ -1）
   const vIdx = headerIdx("visibility");
-
-  // answer 列の位置：ヘッダに answer が無ければ「D列（インデックス3）」を使う
   let aIdx = headerIdx("answer");
-  if (aIdx === -1) aIdx = 3; // 0:A,1:B,2:C,3:D
-
-  // source 列（任意）
+  if (aIdx === -1) aIdx = 3; // D列
   let sIdx = headerIdx("source_url_or_note");
   if (sIdx === -1) sIdx = -1;
 
@@ -119,20 +109,15 @@ async function loadFaqCsv(csvUrl) {
     .map(r => {
       const cols = r.map(c => (c ?? "").trim());
 
-      // 可視性
       let visibility = "public";
       if (vIdx >= 0 && vIdx < cols.length) {
         const v = (cols[vIdx] || "").trim().toLowerCase();
         if (v) visibility = v;
       }
 
-      // 回答（D列前提 / または answer 列）
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
-
-      // 出典
       const source = sIdx >= 0 && sIdx < cols.length ? (cols[sIdx] || "").trim() : "";
 
-      // 行全体テキスト（カテゴリ・質問・回答・キーワードなど全部）
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
       return { answer, source, visibility, joined };
@@ -150,11 +135,7 @@ function normalizeJa(s) {
     .trim();
 }
 
-/**
- * FAQ 1 行に対する一致度。
- * 質問文（同義語展開済み）と行全体テキストを正規化し、
- * 二文字単位（バイグラム）の重なり数でスコアを出す。
- */
+/** FAQ 1 行に対する一致度（バイグラムで重なり数を計算） */
 function scoreFaqItem(item, expandedText) {
   const queryNorm = normalizeJa(expandedText);
   if (!queryNorm) return 0;
@@ -174,7 +155,7 @@ function scoreFaqItem(item, expandedText) {
   return score;
 }
 
-/** HTML → プレーンテキスト（HP／STORES／note 用） */
+/** HTML → プレーンテキスト（HP／STORES 用） */
 function htmlToText(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -188,30 +169,44 @@ function htmlToText(html) {
     .trim();
 }
 
+/** RSS テキスト → item 配列（title, description, link, joined）に変換 */
+function parseRss(text) {
+  const items = [];
+  const itemRegex = /<item\b[\s\S]*?<\/item>/gi;
+  let m;
+  while ((m = itemRegex.exec(text)) !== null) {
+    const block = m[0];
+    const tag = (name) => {
+      const r = new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, "i");
+      const mm = r.exec(block);
+      if (!mm) return "";
+      let v = mm[1].trim();
+      v = v.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+      return v.trim();
+    };
+    const title = tag("title");
+    const desc = tag("description");
+    const link = tag("link");
+    const joined = (title + " " + desc).replace(/\s+/g, " ");
+    if (title || desc) {
+      items.push({ title, description: desc, link, joined });
+    }
+  }
+  return items;
+}
+
 /**
- * env.ALLOW_URLS に列挙した URL 群（HP / 公式LINE案内ページ / STORES商品ページ / note 記事など）
- * からテキストを取得し、質問文（同義語展開済み）と近いページを一つ選んで返す。
- *
- * 「改行」だけでなく「カンマ」区切りにも対応。
+ * ALLOW_URLS に書かれた URL 群から「ページ／記事の一覧」を作る。
+ * - 通常の URL: そのページ 1件だけを文書として扱う
+ * - /rss や feed: RSS とみなして item を文書として扱う
  */
-async function findAnswerFromPages(env, expandedText) {
+async function loadSiteDocuments(env) {
   const urls = (env.ALLOW_URLS || "")
     .split(/[\s,]+/)
     .map(u => u.trim())
     .filter(Boolean);
 
-  if (!urls.length) return null;
-
-  const queryNorm = normalizeJa(expandedText);
-  if (!queryNorm || queryNorm.length < 2) return null;
-
-  const bigrams = [];
-  for (let i = 0; i < queryNorm.length - 1; i++) {
-    bigrams.push(queryNorm.slice(i, i + 2));
-  }
-
-  let bestUrl = null;
-  let bestScore = 0;
+  const docs = [];
 
   for (const url of urls) {
     let res;
@@ -222,71 +217,117 @@ async function findAnswerFromPages(env, expandedText) {
     }
     if (!res.ok) continue;
 
-    let html;
+    let text;
     try {
-      html = await res.text();
+      text = await res.text();
     } catch {
       continue;
     }
-    const plain = htmlToText(html);
-    const pageNorm = normalizeJa(plain);
-    if (!pageNorm) continue;
 
-    let score = 0;
-    for (const bg of bigrams) {
-      if (pageNorm.includes(bg)) score++;
-    }
+    const lowerUrl = url.toLowerCase();
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestUrl = url;
+    // RSS / フィード
+    if (lowerUrl.endsWith("/rss") || lowerUrl.includes("rss") || lowerUrl.includes("feed")) {
+      const items = parseRss(text);
+      for (const it of items) {
+        const joinedNorm = it.joined.replace(/\s+/g, " ");
+        docs.push({
+          title: it.title || "",
+          snippet: it.description || "",
+          url: it.link || url,
+          joined: joinedNorm,
+        });
+      }
+    } else {
+      // 通常の HTML ページ
+      const plain = htmlToText(text);
+      if (!plain) continue;
+      docs.push({
+        title: "",
+        snippet: plain.slice(0, 200),
+        url,
+        joined: plain,
+      });
     }
   }
 
-  if (!bestUrl || bestScore === 0) return null;
+  return docs;
+}
 
-  return `この内容については、次のページに記載があります。\n${bestUrl}`;
+/** ページ／記事 1 件に対する一致度（FAQ と同じくバイグラム） */
+function scoreDoc(doc, expandedText) {
+  const queryNorm = normalizeJa(expandedText);
+  if (!queryNorm) return 0;
+  const targetNorm = normalizeJa(doc.joined || "");
+  if (!targetNorm) return 0;
+
+  if (queryNorm.length === 1) {
+    return targetNorm.includes(queryNorm) ? 1 : 0;
+  }
+
+  let score = 0;
+  for (let i = 0; i < queryNorm.length - 1; i++) {
+    const bg = queryNorm.slice(i, i + 2);
+    if (targetNorm.includes(bg)) score++;
+  }
+  return score;
 }
 
 /**
  * 質問 → 回答
- * 1. FAQ 行全体と質問文（＋同義語）を付き合わせて、一番スコアが高い行の D列(answer) を返す
- * 2. 見つからなければ HP / STORES / note 等（ALLOW_URLS）から一番近いページ URL を返す
- * 3. それでも無ければフォールバック
+ * 1. FAQ 行全体と質問文（＋同義語）を付き合わせて、一番スコアが高い行の answer を返す
+ * 2. FAQ で見つからなければ、HP / STORES / note（RSS 含む）の中で
+ *    一番近いページ／記事を探し、その URL を案内する
+ * 3. それでもダメならフォールバック
  */
 async function findAnswer(env, userText) {
   const expanded = expandWithSynonyms(userText || "");
 
-  const items = await loadFaqCsv(env.SHEET_CSV_URL);
-
-  let best = null;
-  let bestScore = -1;
-  for (const it of items) {
+  // 1: FAQ
+  const faqItems = await loadFaqCsv(env.SHEET_CSV_URL);
+  let bestFaq = null;
+  let bestFaqScore = -1;
+  for (const it of faqItems) {
     const sc = scoreFaqItem(it, expanded);
-    if (sc > bestScore) {
-      best = it;
-      bestScore = sc;
+    if (sc > bestFaqScore) {
+      bestFaq = it;
+      bestFaqScore = sc;
     }
   }
-
-  if (best && bestScore > 0) {
-    let out = best.answer;
-    if (best.source) out += `\n—\n出典: ${best.source}`;
+  if (bestFaq && bestFaqScore > 0) {
+    let out = bestFaq.answer;
+    if (bestFaq.source) out += `\n—\n出典: ${bestFaq.source}`;
     return out;
   }
 
-  const pageAnswer = await findAnswerFromPages(env, expanded);
-  if (pageAnswer) return pageAnswer;
+  // 2: HP / STORES / note 等
+  const docs = await loadSiteDocuments(env);
+  let bestDoc = null;
+  let bestDocScore = -1;
+  for (const d of docs) {
+    const sc = scoreDoc(d, expanded);
+    if (sc > bestDocScore) {
+      bestDoc = d;
+      bestDocScore = sc;
+    }
+  }
+  // しきい値: スコア 2 未満なら「関連なし」とみなして捨てる
+  if (bestDoc && bestDocScore >= 2) {
+    let msg = "";
+    if (bestDoc.snippet) {
+      msg += bestDoc.snippet.replace(/\s+/g, " ").slice(0, 160) + "\n\n";
+    }
+    msg += "この内容については、次のページに記載があります。\n" + bestDoc.url;
+    return msg;
+  }
 
+  // 3: 何も見つからない場合
   return "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。";
 }
 
 /** LINE 返信 */
 async function replyToLINE(token, replyToken, text) {
-  const body = {
-    replyToken,
-    messages: [{ type: "text", text }],
-  };
+  const body = { replyToken, messages: [{ type: "text", text }] };
   const res = await fetch(LINE_REPLY_ENDPOINT, {
     method: "POST",
     headers: {
