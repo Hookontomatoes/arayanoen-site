@@ -2,7 +2,8 @@
 // LINE Webhook（Cloudflare Pages Functions）
 // ・署名検証（LINE_CHANNEL_SECRET）
 // ・テキスト受信 → シート検索（SHEET_CSV_URL）→ 最適回答
-// ・見つからなければフォールバック文面
+// ・FAQで見つからなければ ALLOW_URLS に列挙した HP／STORES／note などを検索
+// ・それでも無ければフォールバック文面
 
 const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 
@@ -43,7 +44,6 @@ async function loadFaqCsv(csvUrl) {
       if (c === ",") { row.push(field); field = ""; i++; continue; }
       if (c === "\n" || c === "\r") {
         // CRLF/CR/LF
-        // consume CRLF
         if (c === "\r" && text[i + 1] === "\n") i++;
         row.push(field); rows.push(row); field = ""; row = []; i++; continue;
       }
@@ -56,23 +56,36 @@ async function loadFaqCsv(csvUrl) {
   // ヘッダ
   const header = rows.shift().map(h => h.trim().toLowerCase());
   const idx = (name) => header.findIndex(h => h === name.toLowerCase());
-  const qIdx = idx("question");
+
+  // question / category_or_question 両方を許可
+  const qIdx = (() => {
+    const cand = ["question", "category_or_question"];
+    for (const name of cand) {
+      const j = idx(name);
+      if (j !== -1) return j;
+    }
+    return -1;
+  })();
+
   const aIdx = idx("answer");
   const sIdx = idx("source_url_or_note");
   const kIdx = idx("keywords(optional)") !== -1 ? idx("keywords(optional)") : idx("keywords");
   const vIdx = idx("visibility");
 
-  // 正常な列だけ抽出（public のみ）
+  const maxIdx = Math.max(qIdx, aIdx, sIdx, kIdx, vIdx);
+
+  // 正常な列だけ抽出（visibility が public のみ）
   const items = rows
-    .filter(r => r.length > Math.max(qIdx, aIdx))
+    .filter(r => r.length > maxIdx)
     .map(r => ({
-      question: r[qIdx]?.trim() ?? "",
-      answer: r[aIdx]?.trim() ?? "",
+      question: qIdx >= 0 ? (r[qIdx]?.trim() ?? "") : "",
+      answer: aIdx >= 0 ? (r[aIdx]?.trim() ?? "") : "",
       source: sIdx >= 0 ? (r[sIdx]?.trim() ?? "") : "",
       keywords: kIdx >= 0 ? (r[kIdx]?.trim() ?? "") : "",
       visibility: vIdx >= 0 ? (r[vIdx]?.trim().toLowerCase() ?? "public") : "public",
     }))
     .filter(x => x.visibility === "public");
+
   return items;
 }
 
@@ -89,21 +102,104 @@ function scoreItem(item, text) {
   return s;
 }
 
-/** 質問→回答 */
+/** HTML → プレーンテキスト */
+function htmlToText(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** ALLOW_URLS に列挙した HP／STORES／note などから回答候補を探す */
+async function findAnswerFromPages(env, userText) {
+  const urls = (env.ALLOW_URLS || "")
+    .split(/\r?\n/)
+    .map(u => u.trim())
+    .filter(Boolean);
+
+  if (!urls.length) return null;
+
+  const query = userText.toLowerCase();
+  const words = query.split(/\s+/).filter(w => w.length >= 2);
+
+  let bestUrl = null;
+  let bestScore = 0;
+  let bestSnippet = "";
+
+  for (const url of urls) {
+    let res;
+    try {
+      res = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });
+    } catch {
+      continue;
+    }
+    if (!res.ok) continue;
+
+    const html = await res.text();
+    const plain = htmlToText(html);
+    const lower = plain.toLowerCase();
+
+    let score = 0;
+    for (const w of words) {
+      if (lower.includes(w)) score += 1;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestUrl = url;
+
+      let pos = -1;
+      for (const w of words) {
+        pos = lower.indexOf(w);
+        if (pos !== -1) break;
+      }
+      if (pos === -1) pos = 0;
+      const start = Math.max(0, pos - 40);
+      const end = Math.min(plain.length, start + 160);
+      bestSnippet = plain.slice(start, end).replace(/\s+/g, " ");
+    }
+  }
+
+  if (!bestUrl || bestScore === 0) return null;
+
+  let message = "";
+  if (bestSnippet) {
+    message += bestSnippet.trim() + "\n\n";
+  }
+  message += "詳しくは次のページをご確認ください。\n" + bestUrl;
+  return message;
+}
+
+/** 質問→回答（FAQ優先 → HP／STORES／note → フォールバック） */
 async function findAnswer(env, userText) {
   const items = await loadFaqCsv(env.SHEET_CSV_URL);
-  // スコアリング
+
+  // まず CSV（FAQ）をスコアリング
   let best = null, bestScore = -1;
   for (const it of items) {
     const sc = scoreItem(it, userText);
     if (sc > bestScore) { best = it; bestScore = sc; }
   }
-  if (!best || bestScore < 1) {
-    return "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。";
+
+  // FAQ から十分な一致があればそれを返す
+  if (best && bestScore >= 1) {
+    let out = best.answer;
+    if (best.source) out += `\n—\n出典: ${best.source}`;
+    return out;
   }
-  let out = best.answer;
-  if (best.source) out += `\n—\n出典: ${best.source}`;
-  return out;
+
+  // FAQで見つからなければ、HP／LINE／STORES／note（ALLOW_URLS）を検索
+  const pageAnswer = await findAnswerFromPages(env, userText);
+  if (pageAnswer) return pageAnswer;
+
+  // それでも無ければフォールバック
+  return "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。";
 }
 
 async function replyToLINE(token, replyToken, text) {
@@ -151,7 +247,7 @@ export async function onRequestPost({ request, env }) {
         );
       }
     } else {
-      // 未対応種別には簡易応答（必要なら削除）
+      // 未対応種別には簡易応答
       if (ev.replyToken) {
         await replyToLINE(env.LINE_CHANNEL_TOKEN, ev.replyToken, "テキストでご質問ください。");
       }
