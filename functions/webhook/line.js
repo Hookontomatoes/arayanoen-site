@@ -135,38 +135,33 @@ function normalizeJa(s) {
 
 /**
  * FAQ 1 行に対する一致度。
+ *
  * 優先的に question 列だけを見てスコアリングし、
  * question が無い場合のみ joined（全列）で評価します。
  *
- * さらに、「クエリの冒頭の二〜三文字が含まれていない項目」は
- * 強制的にスコアをゼロとし、見当違いの回答を減らします。
- * （例:「圃場はどこにありますか？」で「トークルームはどこにありますか？」を拾わない）
+ * さらに、「ユーザー質問の先頭一文字」が FAQ 側テキストに
+ * 一度も出てこない場合は、強制的にスコアを 0 にします。
+ * これにより「圃場はどこですか？」で「場所はメッセージでご案内」
+ * などの回答を拾わないようにします。
  */
 function scoreFaqItem(item, expandedText) {
-  const queryNorm = normalizeJa(expandedText);
+  const rawQuery = expandedText || "";
+  const targetRaw = item.question || item.joined || "";
+
+  // 先頭一文字チェック（例: 「圃場は…」なら「圃」が含まれていなければ 0 点）
+  const firstChar = rawQuery.trim().charAt(0);
+  if (firstChar && !targetRaw.includes(firstChar)) {
+    return 0;
+  }
+
+  const queryNorm = normalizeJa(rawQuery);
   if (!queryNorm) return 0;
 
-  const targetText = item.question || item.joined || "";
-  const targetNorm = normalizeJa(targetText);
+  const targetNorm = normalizeJa(targetRaw);
   if (!targetNorm) return 0;
 
   if (queryNorm.length === 1) {
     return targetNorm.includes(queryNorm) ? 1 : 0;
-  }
-
-  // 冒頭のビグラムをチェック（最大三つ）
-  const prefixCount = Math.min(3, queryNorm.length - 1);
-  let prefixHit = false;
-  for (let i = 0; i < prefixCount; i++) {
-    const bg = queryNorm.slice(i, i + 2);
-    if (targetNorm.includes(bg)) {
-      prefixHit = true;
-      break;
-    }
-  }
-  if (!prefixHit) {
-    // 冒頭のキーワードが一つも含まれていないならスコア 0
-    return 0;
   }
 
   let score = 0;
