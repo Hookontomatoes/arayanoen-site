@@ -10,6 +10,9 @@
 
 const LINE_REPLY_ENDPOINT = "https://api.line.me/v2/bot/message/reply";
 
+// FAQ を採用するための最小一致率（0〜1）
+const MIN_FAQ_RATIO = 0.8;
+
 // ここに「同じ意味として扱いたい言葉」をグループで列挙してください。
 const SYNONYM_GROUPS = [
   ["開業", "創業"],
@@ -91,7 +94,7 @@ async function loadFaqCsv(csvUrl) {
   const vIdx = headerIdx("visibility");
   let aIdx = headerIdx("answer");
   if (aIdx === -1) aIdx = 3;
-  // source_url_or_note は不要だが、列があっても無視できるようにだけインデックスを取っておく
+  // source_url_or_note は使わないが、列があっても無視できるようにしておく
   let sIdx = headerIdx("source_url_or_note");
   if (sIdx === -1) sIdx = -1;
 
@@ -106,7 +109,6 @@ async function loadFaqCsv(csvUrl) {
       }
 
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
-      // 出典列は使わない（どの URL から来たかは FAQ 側に文章として書く運用とする）
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
       return { answer, visibility, joined };
@@ -126,6 +128,7 @@ function normalizeJa(s) {
 
 /**
  * FAQ 1 行に対する一致度。
+ * 戻り値は「クエリ側の二文字単位のうち、いくつ含まれているか」の数。
  */
 function scoreFaqItem(item, expandedText) {
   const queryNorm = normalizeJa(expandedText);
@@ -161,15 +164,9 @@ function htmlToText(html) {
 }
 
 /**
- * ★ 新機能: note 記事を検索する
- * note.com のドメインから、質問に関連する記事を自動検索
+ * note 記事を検索する
  */
 async function searchNoteArticles(noteDomain, expandedText) {
-  // note の検索 URL（例: https://note.com/あなたのアカウント名?q=キーワード）
-  // または Google Custom Search API などを使う方法もあります
-  
-  // ここでは簡易的に、sitemap や RSS から記事一覧を取得する想定
-  // 実装例: note.com/ユーザー名/rss から最新記事を取得
   const rssUrl = `${noteDomain}/rss`;
   
   try {
@@ -178,19 +175,17 @@ async function searchNoteArticles(noteDomain, expandedText) {
     
     const xml = await res.text();
     
-    // RSS から <link> タグを抽出（簡易パース）
     const linkMatches = xml.matchAll(/<link>([^<]+)<\/link>/g);
     const urls = [];
     for (const match of linkMatches) {
       const url = match[1].trim();
-      if (url && url.startsWith('http')) {
+      if (url && url.startsWith("http")) {
         urls.push(url);
       }
     }
     
     if (!urls.length) return null;
     
-    // 各記事をスコアリング
     const queryNorm = normalizeJa(expandedText);
     if (!queryNorm || queryNorm.length < 2) return null;
     
@@ -234,12 +229,11 @@ async function searchNoteArticles(noteDomain, expandedText) {
 }
 
 /**
- * ★ 改良版: ドメインパターン + note 自動検索対応
+ * ドメインパターン + note 自動検索対応
  * ALLOW_URLS の例:
  *   https://arayanoen-site.pages.dev/
  *   https://arayanoen-sizen.stores.jp/
  *   note.com/araya_noen2018/*
- *   ↑ のように * をつけるとそのドメイン配下を自動検索
  */
 async function findAnswerFromPages(env, expandedText) {
   const allowList = (env.ALLOW_URLS || "")
@@ -261,12 +255,12 @@ async function findAnswerFromPages(env, expandedText) {
   let bestScore = 0;
 
   for (const pattern of allowList) {
-    // ★ ワイルドカード対応（note.com/xxx/* など）
-    if (pattern.includes('*')) {
-      const baseDomain = pattern.replace('*', '').replace(/\/+$/, '');
+    // ワイルドカード対応（note.com/xxx/* など）
+    if (pattern.includes("*")) {
+      const baseDomain = pattern.replace("*", "").replace(/\/+$/, "");
       
       // note の場合は RSS 検索
-      if (baseDomain.includes('note.com')) {
+      if (baseDomain.includes("note.com")) {
         const noteUrl = await searchNoteArticles(baseDomain, expandedText);
         if (noteUrl) {
           return {
@@ -318,10 +312,10 @@ async function findAnswerFromPages(env, expandedText) {
 
 /**
  * 質問 → 回答
- * どこから拾ったか分かるようにデバッグラベルを付与する:
- *  - [FAQ score=数字] ...  → FAQ から回答
- *  - [PAGE] ...            → HP / STORES / note から回答
- *  - [NONE] ...            → どこにも見つからず固定メッセージ
+ * 仕様:
+ *  - 質問と「ほぼ同じ文字列」の FAQ があるときだけ FAQ を採用
+ *  - そうでなければ HP / STORES / note を検索
+ *  - それでも無ければ固定メッセージ
  */
 async function findAnswer(env, userText) {
   const raw = userText || "";
@@ -331,6 +325,8 @@ async function findAnswer(env, userText) {
 
   let best = null;
   let bestScore = -1;
+
+  // まず FAQ との一致度を調べる
   for (const it of items) {
     const sc = scoreFaqItem(it, expanded);
     if (sc > bestScore) {
@@ -339,23 +335,26 @@ async function findAnswer(env, userText) {
     }
   }
 
-  // FAQ からの回答
-  if (best && bestScore > 0) {
-    let out = `[FAQ score=${bestScore}] ` + best.answer;
-    // 出典表示はしない（source_url_or_note を使わない前提）
+  // 質問側の最大スコア（クエリ文字列の長さから計算）
+  const queryNorm = normalizeJa(expanded);
+  const maxScore = Math.max(queryNorm.length - 1, 1);
+  const threshold = Math.ceil(maxScore * MIN_FAQ_RATIO);
+
+  // 一致度が十分高いときだけ FAQ を採用する
+  if (best && bestScore >= threshold && bestScore > 0) {
+    const out = best.answer; // 出典やスコアは表示しない
     return { text: out, url: null };
   }
 
-  // HP / STORES / note からの回答
+  // FAQ があいまいなら、HP / STORES / note を見る
   const pageAnswer = await findAnswerFromPages(env, expanded);
   if (pageAnswer) {
-    const text = `[PAGE] ` + (pageAnswer.text || "");
-    return { text, url: pageAnswer.url };
+    return pageAnswer;
   }
 
-  // どこにも見つからなかった
+  // それでも見つからなかった場合
   return { 
-    text: "[NONE] 該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。",
+    text: "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。",
     url: null
   };
 }
