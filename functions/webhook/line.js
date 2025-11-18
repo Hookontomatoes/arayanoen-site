@@ -17,11 +17,8 @@ const SYNONYM_GROUPS = [
   // 必要に応じて追加してください。
 ];
 
-// ★ しきい値（ここがポイント）
-// FAQ の一致度がこの値未満なら FAQ は使わない
+// FAQ マッチングの最低スコア
 const MIN_FAQ_SCORE = 3;
-// HP / STORES / note ページの一致度がこの値未満なら URL も返さない
-const MIN_PAGE_SCORE = 3;
 
 /** HMAC-SHA256 (base64) */
 async function sign(secret, bodyText) {
@@ -62,6 +59,12 @@ function expandWithSynonyms(text) {
 
 /**
  * FAQ CSV を読み込む。
+ *
+ * 列の想定:
+ *   - question              … 質問文（あれば優先してマッチングに使用）
+ *   - answer                … 回答文
+ *   - visibility            … public の行だけ回答候補にする（無ければすべて public 扱い）
+ *   - source_url_or_note 等 … あっても無視（マッチングにも回答にも使わない）
  */
 async function loadFaqCsv(csvUrl) {
   const res = await fetch(csvUrl, { cf: { cacheTtl: 60, cacheEverything: true } });
@@ -95,15 +98,15 @@ async function loadFaqCsv(csvUrl) {
   const headerIdx = (name) => header.findIndex(h => h === name.toLowerCase());
 
   const vIdx = headerIdx("visibility");
+  const qIdx = headerIdx("question");
   let aIdx = headerIdx("answer");
-  if (aIdx === -1) aIdx = 3;
-  // source_url_or_note は使わないので読み取るだけ
-  const sIdx = headerIdx("source_url_or_note");
+  if (aIdx === -1) aIdx = 3; // 互換用: 4列目を answer とみなす
 
   const items = rows
     .map(r => {
       const cols = r.map(c => (c ?? "").trim());
 
+      // visibility 列（なければ public）
       let visibility = "public";
       if (vIdx >= 0 && vIdx < cols.length) {
         const v = (cols[vIdx] || "").trim().toLowerCase();
@@ -111,9 +114,11 @@ async function loadFaqCsv(csvUrl) {
       }
 
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
+      const question = qIdx >= 0 && qIdx < cols.length ? (cols[qIdx] || "").trim() : "";
+      // 検索用テキスト: すべての列を結合（互換用）
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
-      return { answer, visibility, joined };
+      return { answer, question, visibility, joined };
     })
     .filter(x => x.visibility === "public" && x.answer);
 
@@ -130,25 +135,36 @@ function normalizeJa(s) {
 
 /**
  * FAQ 1 行に対する一致度。
- * ここでは単純に「2文字ずつの部分文字列が何回出てくるか」をスコアとして使う
+ *
+ * ここでは「ほぼ同じ文かどうか」だけを見る、かなり保守的な判定にします。
+ *
+ * ルール:
+ *   1. ユーザー質問と FAQ 質問を正規化した文字列で比較
+ *   2. 完全一致なら高得点
+ *   3. どちらか一方がもう一方を含んでいればマッチ（部分一致）
+ *   4. それ以外はスコア 0（マッチしない扱い）
+ *
+ * これにより、「圃場はどこにありますか？」と
+ * 「圃場、収穫日、ロットで追跡可能ですか？」のような
+ * 方向性の違う質問はマッチしなくなります。
  */
-function scoreFaqItem(item, expandedText) {
-  const queryNorm = normalizeJa(expandedText);
+function scoreFaqItem(item, userText) {
+  const queryNorm = normalizeJa(userText);
   if (!queryNorm) return 0;
 
-  const targetNorm = normalizeJa(item.joined || "");
+  const targetText = item.question || item.joined || "";
+  const targetNorm = normalizeJa(targetText);
   if (!targetNorm) return 0;
 
-  if (queryNorm.length === 1) {
-    return targetNorm.includes(queryNorm) ? 1 : 0;
+  if (targetNorm === queryNorm) {
+    return targetNorm.length * 2;
   }
 
-  let score = 0;
-  for (let i = 0; i < queryNorm.length - 1; i++) {
-    const bg = queryNorm.slice(i, i + 2);
-    if (targetNorm.includes(bg)) score++;
+  if (targetNorm.includes(queryNorm) || queryNorm.includes(targetNorm)) {
+    return Math.min(targetNorm.length, queryNorm.length);
   }
-  return score;
+
+  return 0;
 }
 
 /** HTML → プレーンテキスト */
@@ -166,15 +182,78 @@ function htmlToText(html) {
 }
 
 /**
- * ドメインパターン対応（note 専用 RSS は廃止）
+ * ★ 新機能: note 記事を検索する
+ * note.com のドメインから、質問に関連する記事を自動検索
+ */
+async function searchNoteArticles(noteDomain, expandedText) {
+  const rssUrl = `${noteDomain}/rss`;
+  
+  try {
+    const res = await fetch(rssUrl, { cf: { cacheTtl: 300, cacheEverything: true } });
+    if (!res.ok) return null;
+    
+    const xml = await res.text();
+    
+    const linkMatches = xml.matchAll(/<link>([^<]+)<\/link>/g);
+    const urls = [];
+    for (const match of linkMatches) {
+      const url = match[1].trim();
+      if (url && url.startsWith("http")) {
+        urls.push(url);
+      }
+    }
+    
+    if (!urls.length) return null;
+    
+    const queryNorm = normalizeJa(expandedText);
+    if (!queryNorm || queryNorm.length < 2) return null;
+    
+    const bigrams = [];
+    for (let i = 0; i < queryNorm.length - 1; i++) {
+      bigrams.push(queryNorm.slice(i, i + 2));
+    }
+    
+    let bestUrl = null;
+    let bestScore = 0;
+    
+    for (const url of urls) {
+      try {
+        const articleRes = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });
+        if (!articleRes.ok) continue;
+        
+        const html = await articleRes.text();
+        const plain = htmlToText(html);
+        const pageNorm = normalizeJa(plain);
+        
+        let score = 0;
+        for (const bg of bigrams) {
+          if (pageNorm.includes(bg)) score++;
+        }
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestUrl = url;
+        }
+      } catch {
+        continue;
+      }
+    }
+    
+    if (!bestUrl || bestScore === 0) return null;
+    return bestUrl;
+    
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * ★ 改良版: ドメインパターン + note 自動検索対応
  * ALLOW_URLS の例:
  *   https://arayanoen-site.pages.dev/
  *   https://arayanoen-sizen.stores.jp/
- *   https://note.com/araya_noen2018/*
- *
- * 「*」が付いている場合は、"* を取り除いた URL をそのまま取得」
- *   例: https://note.com/araya_noen2018/* 
- *        → https://note.com/araya_noen2018/
+ *   note.com/araya_noen2018/*
+ *   ↑ のように * をつけるとそのドメイン配下を自動検索
  */
 async function findAnswerFromPages(env, expandedText) {
   const allowList = (env.ALLOW_URLS || "")
@@ -196,15 +275,24 @@ async function findAnswerFromPages(env, expandedText) {
   let bestScore = 0;
 
   for (const pattern of allowList) {
-    // "*” が含まれる場合は、"* を外したベースURLで取得
-    let url = pattern;
     if (pattern.includes("*")) {
-      url = pattern.replace("*", "").replace(/\/+$/, "") + "/";
+      const baseDomain = pattern.replace("*", "").replace(/\/+$/, "");
+      
+      if (baseDomain.includes("note.com")) {
+        const noteUrl = await searchNoteArticles(baseDomain, expandedText);
+        if (noteUrl) {
+          return {
+            text: "この内容については、こちらの記事をご覧ください:",
+            url: noteUrl
+          };
+        }
+      }
+      continue;
     }
 
     let res;
     try {
-      res = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });
+      res = await fetch(pattern, { cf: { cacheTtl: 300, cacheEverything: true } });
     } catch {
       continue;
     }
@@ -227,12 +315,11 @@ async function findAnswerFromPages(env, expandedText) {
 
     if (score > bestScore) {
       bestScore = score;
-      bestUrl = url;
+      bestUrl = pattern;
     }
   }
 
-  // しきい値未満なら URL も返さない
-  if (!bestUrl || bestScore < MIN_PAGE_SCORE) return null;
+  if (!bestUrl || bestScore === 0) return null;
 
   return {
     text: "この内容については、こちらのページをご覧ください:",
@@ -244,30 +331,28 @@ async function findAnswerFromPages(env, expandedText) {
  * 質問 → 回答
  */
 async function findAnswer(env, userText) {
-  const expanded = expandWithSynonyms(userText || "");
+  const raw = userText || "";
+  const expanded = expandWithSynonyms(raw);
 
   const items = await loadFaqCsv(env.SHEET_CSV_URL);
 
   let best = null;
   let bestScore = -1;
   for (const it of items) {
-    const sc = scoreFaqItem(it, expanded);
+    const sc = scoreFaqItem(it, raw);
     if (sc > bestScore) {
       best = it;
       bestScore = sc;
     }
   }
 
-  // FAQ のスコアがしきい値以上のときだけ、その回答を採用
   if (best && bestScore >= MIN_FAQ_SCORE) {
     return { text: best.answer, url: null };
   }
 
-  // FAQ で決めきれない場合だけ、HP / STORES / note を見る
   const pageAnswer = await findAnswerFromPages(env, expanded);
   if (pageAnswer) return pageAnswer;
 
-  // それでも見つからなければ「該当なし」
   return { 
     text: "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。",
     url: null
@@ -279,7 +364,6 @@ async function replyToLINE(token, replyToken, text, url = null) {
   let messages;
   
   if (url) {
-    // URL がある場合はボタンテンプレートを使用
     messages = [
       {
         type: "template",
@@ -298,7 +382,6 @@ async function replyToLINE(token, replyToken, text, url = null) {
       }
     ];
   } else {
-    // 通常のテキストメッセージ
     messages = [{ type: "text", text }];
   }
 
@@ -323,7 +406,6 @@ async function replyToLINE(token, replyToken, text, url = null) {
 export async function onRequestPost({ request, env }) {
   const rawBody = await request.text();
 
-  // 署名検証
   const sigHeader = request.headers.get("x-line-signature") || "";
   const expected = await sign(env.LINE_CHANNEL_SECRET, rawBody);
   if (sigHeader !== expected) {
