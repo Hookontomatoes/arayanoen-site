@@ -166,16 +166,36 @@ th{background:#f3f5f7}
 @media (min-width: 860px){
   #contact .grid-2 { grid-template-columns: 1.05fr .95fr; }
 }
-#contact .form-embed iframe{
-  width: 100%;
-  max-width: 760px;
-  height: 800px;
-  border: 0;
-  border-radius: 12px;
-  background: #fff;
-}
 #contact .note { color: var(--muted); font-size: .92rem; }
 #contact .btns { display:flex; gap:10px; flex-wrap:wrap; }
+
+/* PC・タブレット用 埋め込みフォーム */
+.form-embed-desktop iframe{
+  display:block;
+  width:100%;
+  max-width: 760px;
+  height: 900px;         /* 内部スクロールが出にくい程度の高さ */
+  border:0;
+  border-radius: 12px;
+  background:#fff;
+}
+
+/* スマホ用：デフォルトでは非表示 */
+.form-embed-mobile{
+  display:none;
+}
+
+/* スマホ幅では埋め込みを隠し、「フォームを開く」ボタンだけ表示 */
+@media (max-width: 640px){
+  .form-embed-desktop{
+    display:none;
+  }
+  .form-embed-mobile{
+    display:block;
+    margin-top: 8px;
+  }
+}
+
 
 /* Googleフォームの埋め込みを確実に表示 */
 .form-embed iframe{
