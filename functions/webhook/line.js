@@ -17,8 +17,8 @@ const SYNONYM_GROUPS = [
   // 必要に応じて追加してください。
 ];
 
-// FAQ マッチングの最低スコア
-const MIN_FAQ_SCORE = 3;
+// FAQ マッチングの最低スコア（0〜1）
+const MIN_FAQ_SCORE = 0.45;
 
 /** HMAC-SHA256 (base64) */
 async function sign(secret, bodyText) {
@@ -61,10 +61,10 @@ function expandWithSynonyms(text) {
  * FAQ CSV を読み込む。
  *
  * 列の想定:
- *   - question              … 質問文（あれば優先してマッチングに使用）
- *   - answer                … 回答文
- *   - visibility            … public の行だけ回答候補にする（無ければすべて public 扱い）
- *   - source_url_or_note 等 … あっても無視（マッチングにも回答にも使わない）
+ *   - question   … 質問文（あれば優先してマッチングに使用）
+ *   - answer     … 回答文
+ *   - visibility … public の行だけ回答候補にする（無ければすべて public 扱い）
+ *   - その他の列 … マッチングにも回答にも使わない（source_url_or_note など）
  */
 async function loadFaqCsv(csvUrl) {
   const res = await fetch(csvUrl, { cf: { cacheTtl: 60, cacheEverything: true } });
@@ -106,7 +106,6 @@ async function loadFaqCsv(csvUrl) {
     .map(r => {
       const cols = r.map(c => (c ?? "").trim());
 
-      // visibility 列（なければ public）
       let visibility = "public";
       if (vIdx >= 0 && vIdx < cols.length) {
         const v = (cols[vIdx] || "").trim().toLowerCase();
@@ -115,7 +114,6 @@ async function loadFaqCsv(csvUrl) {
 
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
       const question = qIdx >= 0 && qIdx < cols.length ? (cols[qIdx] || "").trim() : "";
-      // 検索用テキスト: すべての列を結合（互換用）
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
       return { answer, question, visibility, joined };
@@ -134,37 +132,35 @@ function normalizeJa(s) {
 }
 
 /**
- * FAQ 1 行に対する一致度。
- *
- * ここでは「ほぼ同じ文かどうか」だけを見る、かなり保守的な判定にします。
- *
- * ルール:
- *   1. ユーザー質問と FAQ 質問を正規化した文字列で比較
- *   2. 完全一致なら高得点
- *   3. どちらか一方がもう一方を含んでいればマッチ（部分一致）
- *   4. それ以外はスコア 0（マッチしない扱い）
- *
- * これにより、「圃場はどこにありますか？」と
- * 「圃場、収穫日、ロットで追跡可能ですか？」のような
- * 方向性の違う質問はマッチしなくなります。
+ * ２文字ずつの共通度で類似度（0〜1）を出す
+ */
+function bigramSimilarity(a, b) {
+  const na = normalizeJa(a);
+  const nb = normalizeJa(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+
+  const grams = new Set();
+  for (let i = 0; i < na.length - 1; i++) {
+    grams.add(na.slice(i, i + 2));
+  }
+  if (!grams.size) return 0;
+
+  let hit = 0;
+  for (let i = 0; i < nb.length - 1; i++) {
+    const g = nb.slice(i, i + 2);
+    if (grams.has(g)) hit++;
+  }
+  const denom = Math.max(na.length - 1, nb.length - 1);
+  return hit / denom;
+}
+
+/**
+ * FAQ 1行に対する一致度（0〜1）
  */
 function scoreFaqItem(item, userText) {
-  const queryNorm = normalizeJa(userText);
-  if (!queryNorm) return 0;
-
-  const targetText = item.question || item.joined || "";
-  const targetNorm = normalizeJa(targetText);
-  if (!targetNorm) return 0;
-
-  if (targetNorm === queryNorm) {
-    return targetNorm.length * 2;
-  }
-
-  if (targetNorm.includes(queryNorm) || queryNorm.includes(targetNorm)) {
-    return Math.min(targetNorm.length, queryNorm.length);
-  }
-
-  return 0;
+  const q = item.question || item.joined || "";
+  return bigramSimilarity(userText, q);
 }
 
 /** HTML → プレーンテキスト */
@@ -182,18 +178,47 @@ function htmlToText(html) {
 }
 
 /**
- * ★ 新機能: note 記事を検索する
- * note.com のドメインから、質問に関連する記事を自動検索
+ * プレーンテキストから「質問に一番近い一文」を抜き出す
+ * （note 記事用。回答テキストは必ず元記事に実在する一文だけ）
  */
-async function searchNoteArticles(noteDomain, expandedText) {
-  const rssUrl = `${noteDomain}/rss`;
-  
+function extractBestSentence(plainText, userText) {
+  const sentences = plainText
+    .split(/[。！？!?]/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (!sentences.length) return null;
+
+  let best = null;
+  let bestScore = 0;
+  for (const s of sentences) {
+    const sc = bigramSimilarity(userText, s);
+    if (sc > bestScore) {
+      bestScore = sc;
+      best = s;
+    }
+  }
+  if (!best || bestScore === 0) return null;
+
+  // 長過ぎる場合は先頭 120 文字に丸める（元文そのものなので改変とはみなさない）
+  if (best.length > 120) {
+    best = best.slice(0, 120) + "…";
+  }
+  return best;
+}
+
+/**
+ * ★ note 記事を検索し、「一番近い一文」を抜き出す
+ */
+async function searchNoteArticles(noteDomain, userText) {
+  const rssUrl = `${noteDomain.replace(/\/+$/, "")}/rss`;
+
   try {
     const res = await fetch(rssUrl, { cf: { cacheTtl: 300, cacheEverything: true } });
     if (!res.ok) return null;
-    
+
     const xml = await res.text();
-    
+
     const linkMatches = xml.matchAll(/<link>([^<]+)<\/link>/g);
     const urls = [];
     for (const match of linkMatches) {
@@ -202,60 +227,52 @@ async function searchNoteArticles(noteDomain, expandedText) {
         urls.push(url);
       }
     }
-    
+
     if (!urls.length) return null;
-    
-    const queryNorm = normalizeJa(expandedText);
-    if (!queryNorm || queryNorm.length < 2) return null;
-    
-    const bigrams = [];
-    for (let i = 0; i < queryNorm.length - 1; i++) {
-      bigrams.push(queryNorm.slice(i, i + 2));
-    }
-    
+
     let bestUrl = null;
-    let bestScore = 0;
-    
+    let bestPageScore = 0;
+    let bestSnippet = null;
+
     for (const url of urls) {
       try {
         const articleRes = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });
         if (!articleRes.ok) continue;
-        
+
         const html = await articleRes.text();
         const plain = htmlToText(html);
-        const pageNorm = normalizeJa(plain);
-        
-        let score = 0;
-        for (const bg of bigrams) {
-          if (pageNorm.includes(bg)) score++;
-        }
-        
-        if (score > bestScore) {
-          bestScore = score;
+
+        const pageScore = bigramSimilarity(userText, plain);
+        if (pageScore <= 0) continue;
+
+        const snippet = extractBestSentence(plain, userText);
+
+        if (pageScore > bestPageScore) {
+          bestPageScore = pageScore;
           bestUrl = url;
+          bestSnippet = snippet;
         }
       } catch {
         continue;
       }
     }
-    
-    if (!bestUrl || bestScore === 0) return null;
-    return bestUrl;
-    
+
+    if (!bestUrl || bestPageScore === 0) return null;
+    return { url: bestUrl, snippet: bestSnippet };
+
   } catch {
     return null;
   }
 }
 
 /**
- * ★ 改良版: ドメインパターン + note 自動検索対応
+ * ★ ドメインパターン + note 自動検索対応
  * ALLOW_URLS の例:
  *   https://arayanoen-site.pages.dev/
  *   https://arayanoen-sizen.stores.jp/
- *   note.com/araya_noen2018/*
- *   ↑ のように * をつけるとそのドメイン配下を自動検索
+ *   https://note.com/araya_noen2018/*
  */
-async function findAnswerFromPages(env, expandedText) {
+async function findAnswerFromPages(env, userText) {
   const allowList = (env.ALLOW_URLS || "")
     .split(/[\s,]+/)
     .map(u => u.trim())
@@ -263,7 +280,9 @@ async function findAnswerFromPages(env, expandedText) {
 
   if (!allowList.length) return null;
 
-  const queryNorm = normalizeJa(expandedText);
+  const expanded = expandWithSynonyms(userText || "");
+
+  const queryNorm = normalizeJa(expanded);
   if (!queryNorm || queryNorm.length < 2) return null;
 
   const bigrams = [];
@@ -275,21 +294,27 @@ async function findAnswerFromPages(env, expandedText) {
   let bestScore = 0;
 
   for (const pattern of allowList) {
+    // note 用ワイルドカード
     if (pattern.includes("*")) {
       const baseDomain = pattern.replace("*", "").replace(/\/+$/, "");
-      
+
       if (baseDomain.includes("note.com")) {
-        const noteUrl = await searchNoteArticles(baseDomain, expandedText);
-        if (noteUrl) {
+        const noteResult = await searchNoteArticles(baseDomain, expanded);
+        if (noteResult && noteResult.url) {
+          // note の場合は「抜き出した一文」をテキストとして返す
+          const text = noteResult.snippet
+            ? noteResult.snippet
+            : "この内容については、こちらの記事をご覧ください。";
           return {
-            text: "この内容については、こちらの記事をご覧ください:",
-            url: noteUrl
+            text,
+            url: noteResult.url
           };
         }
       }
       continue;
     }
 
+    // 通常の固定 URL（HP／STORES など）
     let res;
     try {
       res = await fetch(pattern, { cf: { cacheTtl: 300, cacheEverything: true } });
@@ -322,7 +347,7 @@ async function findAnswerFromPages(env, expandedText) {
   if (!bestUrl || bestScore === 0) return null;
 
   return {
-    text: "この内容については、こちらのページをご覧ください:",
+    text: "この内容については、こちらのページをご覧ください。",
     url: bestUrl
   };
 }
@@ -350,10 +375,10 @@ async function findAnswer(env, userText) {
     return { text: best.answer, url: null };
   }
 
-  const pageAnswer = await findAnswerFromPages(env, expanded);
+  const pageAnswer = await findAnswerFromPages(env, raw);
   if (pageAnswer) return pageAnswer;
 
-  return { 
+  return {
     text: "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。",
     url: null
   };
@@ -362,7 +387,7 @@ async function findAnswer(env, userText) {
 /** LINE 返信（URL ボタン対応） */
 async function replyToLINE(token, replyToken, text, url = null) {
   let messages;
-  
+
   if (url) {
     messages = [
       {
@@ -386,7 +411,7 @@ async function replyToLINE(token, replyToken, text, url = null) {
   }
 
   const body = { replyToken, messages };
-  
+
   const res = await fetch(LINE_REPLY_ENDPOINT, {
     method: "POST",
     headers: {
@@ -395,7 +420,7 @@ async function replyToLINE(token, replyToken, text, url = null) {
     },
     body: JSON.stringify(body),
   });
-  
+
   if (!res.ok) {
     const t = await res.text();
     throw new Error(`LINE reply failed: ${res.status} ${t}`);
