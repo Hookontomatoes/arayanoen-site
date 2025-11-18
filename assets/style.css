@@ -143,9 +143,37 @@ figure{margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;
 figure img{display:block;width:100%;height:auto}
 figure figcaption{font-size:.9rem;color:var(--muted);padding:8px 10px}
 
-table{width:100%;border-collapse:collapse;margin:8px 0 12px;border:1px solid var(--line)}
-th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
-th{background:#f3f5f7}
+/* 表（テーブル）の見た目調整：ベージュ背景でも見やすく */
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin:8px 0 12px;
+
+  background:#ffffff;             /* 表の中だけ白にしてカードっぽく */
+  border:1px solid #d4d4d8;       /* 枠線を少しだけ濃く */
+  border-radius:12px;             /* 角をほんのり丸く */
+  overflow:hidden;                /* 角丸の外にはみ出さないように */
+}
+
+th,
+td{
+  padding:10px;
+  border-bottom:1px solid #e5e7eb;
+  text-align:left;
+  font-size:0.95rem;
+}
+
+/* ヘッダー行は少し濃いグレー背景に */
+th{
+  background:#e5e7eb;
+  font-weight:600;
+}
+
+/* 偶数行にうっすら縞模様を付けて行を追いやすくする */
+tbody tr:nth-child(even){
+  background:#f9fafb;
+}
+
 
 /* CTA band for About */
 .band{
