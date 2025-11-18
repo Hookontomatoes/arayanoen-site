@@ -3,7 +3,7 @@
 //
 // 大原則:
 //  - FAQスプレッドシート（env.SHEET_CSV_URL）
-//  - HP / 公式LINE / STORES / note 等（env.ALLOW_URLS）
+//  - HP 等（env.ALLOW_URLS）
 // に書いてある内容だけから回答する。
 //   → 回答テキストは必ずこれらのどこかに実在するものだけ。
 //   → ただし、言い方の違い（開業 / 創業 など）はここで定義した同義語として扱う。
@@ -94,7 +94,7 @@ async function loadFaqCsv(csvUrl) {
   const vIdx = headerIdx("visibility");
   let aIdx = headerIdx("answer");
   if (aIdx === -1) aIdx = 3;
-  // source_url_or_note は使わないが、列があっても無視できるようにしておく
+  // source_url_or_note は使わないが、列があっても無視できるようにだけしておく
   let sIdx = headerIdx("source_url_or_note");
   if (sIdx === -1) sIdx = -1;
 
@@ -164,76 +164,7 @@ function htmlToText(html) {
 }
 
 /**
- * note 記事を検索する
- */
-async function searchNoteArticles(noteDomain, expandedText) {
-  const rssUrl = `${noteDomain}/rss`;
-  
-  try {
-    const res = await fetch(rssUrl, { cf: { cacheTtl: 300, cacheEverything: true } });
-    if (!res.ok) return null;
-    
-    const xml = await res.text();
-    
-    const linkMatches = xml.matchAll(/<link>([^<]+)<\/link>/g);
-    const urls = [];
-    for (const match of linkMatches) {
-      const url = match[1].trim();
-      if (url && url.startsWith("http")) {
-        urls.push(url);
-      }
-    }
-    
-    if (!urls.length) return null;
-    
-    const queryNorm = normalizeJa(expandedText);
-    if (!queryNorm || queryNorm.length < 2) return null;
-    
-    const bigrams = [];
-    for (let i = 0; i < queryNorm.length - 1; i++) {
-      bigrams.push(queryNorm.slice(i, i + 2));
-    }
-    
-    let bestUrl = null;
-    let bestScore = 0;
-    
-    for (const url of urls) {
-      try {
-        const articleRes = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });
-        if (!articleRes.ok) continue;
-        
-        const html = await articleRes.text();
-        const plain = htmlToText(html);
-        const pageNorm = normalizeJa(plain);
-        
-        let score = 0;
-        for (const bg of bigrams) {
-          if (pageNorm.includes(bg)) score++;
-        }
-        
-        if (score > bestScore) {
-          bestScore = score;
-          bestUrl = url;
-        }
-      } catch {
-        continue;
-      }
-    }
-    
-    if (!bestUrl || bestScore === 0) return null;
-    return bestUrl;
-    
-  } catch {
-    return null;
-  }
-}
-
-/**
- * ドメインパターン + note 自動検索対応
- * ALLOW_URLS の例:
- *   https://arayanoen-site.pages.dev/
- *   https://arayanoen-sizen.stores.jp/
- *   note.com/araya_noen2018/*
+ * HP 等（ALLOW_URLS に列挙された URL）の中から関連ページを探す
  */
 async function findAnswerFromPages(env, expandedText) {
   const allowList = (env.ALLOW_URLS || "")
@@ -254,28 +185,10 @@ async function findAnswerFromPages(env, expandedText) {
   let bestUrl = null;
   let bestScore = 0;
 
-  for (const pattern of allowList) {
-    // ワイルドカード対応（note.com/xxx/* など）
-    if (pattern.includes("*")) {
-      const baseDomain = pattern.replace("*", "").replace(/\/+$/, "");
-      
-      // note の場合は RSS 検索
-      if (baseDomain.includes("note.com")) {
-        const noteUrl = await searchNoteArticles(baseDomain, expandedText);
-        if (noteUrl) {
-          return {
-            text: "この内容については、こちらの記事をご覧ください:",
-            url: noteUrl
-          };
-        }
-      }
-      continue;
-    }
-
-    // 通常の URL（固定ページ）
+  for (const url of allowList) {
     let res;
     try {
-      res = await fetch(pattern, { cf: { cacheTtl: 300, cacheEverything: true } });
+      res = await fetch(url, { cf: { cacheTtl: 300, cacheEverything: true } });
     } catch {
       continue;
     }
@@ -298,7 +211,7 @@ async function findAnswerFromPages(env, expandedText) {
 
     if (score > bestScore) {
       bestScore = score;
-      bestUrl = pattern;
+      bestUrl = url;
     }
   }
 
@@ -314,7 +227,7 @@ async function findAnswerFromPages(env, expandedText) {
  * 質問 → 回答
  * 仕様:
  *  - 質問と「ほぼ同じ文字列」の FAQ があるときだけ FAQ を採用
- *  - そうでなければ HP / STORES / note を検索
+ *  - そうでなければ HP を検索
  *  - それでも無ければ固定メッセージ
  */
 async function findAnswer(env, userText) {
@@ -326,7 +239,7 @@ async function findAnswer(env, userText) {
   let best = null;
   let bestScore = -1;
 
-  // まず FAQ との一致度を調べる
+  // FAQ との一致度を調べる
   for (const it of items) {
     const sc = scoreFaqItem(it, expanded);
     if (sc > bestScore) {
@@ -335,7 +248,6 @@ async function findAnswer(env, userText) {
     }
   }
 
-  // 質問側の最大スコア（クエリ文字列の長さから計算）
   const queryNorm = normalizeJa(expanded);
   const maxScore = Math.max(queryNorm.length - 1, 1);
   const threshold = Math.ceil(maxScore * MIN_FAQ_RATIO);
@@ -346,7 +258,7 @@ async function findAnswer(env, userText) {
     return { text: out, url: null };
   }
 
-  // FAQ があいまいなら、HP / STORES / note を見る
+  // FAQ があいまいなら、HP を見る
   const pageAnswer = await findAnswerFromPages(env, expanded);
   if (pageAnswer) {
     return pageAnswer;
@@ -389,18 +301,22 @@ async function replyToLINE(token, replyToken, text, url = null) {
 
   const body = { replyToken, messages };
   
-  const res = await fetch(LINE_REPLY_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`LINE reply failed: ${res.status} ${t}`);
+  try {
+    const res = await fetch(LINE_REPLY_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      // ここでは例外を投げず、ログだけにとどめる（無応答を減らすため）
+      const t = await res.text().catch(() => "");
+      console.log("LINE reply failed:", res.status, t);
+    }
+  } catch (e) {
+    console.log("LINE reply error:", e);
   }
 }
 
@@ -415,7 +331,12 @@ export async function onRequestPost({ request, env }) {
     return new Response("signature mismatch", { status: 400 });
   }
 
-  const body = JSON.parse(rawBody);
+  let body;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return new Response("bad request", { status: 400 });
+  }
 
   for (const ev of body.events || []) {
     if (ev.type === "message" && ev.message?.type === "text") {
@@ -423,16 +344,15 @@ export async function onRequestPost({ request, env }) {
         const answer = await findAnswer(env, ev.message.text || "");
         await replyToLINE(env.LINE_CHANNEL_TOKEN, ev.replyToken, answer.text, answer.url);
       } catch (e) {
+        // 内部処理エラー時も、可能なら一度だけメッセージを返す
         await replyToLINE(
           env.LINE_CHANNEL_TOKEN,
           ev.replyToken,
           "内部処理でエラーが発生しました。お手数ですが、時間をおいて再度お試しください。"
         );
       }
-    } else {
-      if (ev.replyToken) {
-        await replyToLINE(env.LINE_CHANNEL_TOKEN, ev.replyToken, "テキストでご質問ください。");
-      }
+    } else if (ev.replyToken) {
+      await replyToLINE(env.LINE_CHANNEL_TOKEN, ev.replyToken, "テキストでご質問ください。");
     }
   }
 
