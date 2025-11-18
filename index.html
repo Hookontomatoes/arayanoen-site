@@ -292,19 +292,35 @@
 
         <div class="grid grid-2 contact-grid">
           <!-- 左：フォーム本体 -->
-          <div class="card form-embed">
-            <h3 style="margin:0 0 8px">Googleフォーム</h3>
-            <p class="note">送信後に控えメールが届きます。</p>
+            <div class="card form-embed">
+              <h3 style="margin:0 0 8px">Googleフォーム</h3>
+                <p class="note">送信後に控えメールが届きます。</p>
 
-            <iframe
-              src="https://docs.google.com/forms/d/e/1FAIpQLSdN8N8Mdzr7KFkMplja2YXeGCIJmyumy7EuvyWmM_RmWE5-ag/viewform?embedded=true"
-              title="お問い合わせフォーム（Googleフォーム）"
-              loading="lazy"
-              allow="encrypted-media *; clipboard-write *">
-            </iframe>
+          <!-- PC・タブレット用：ページ内に埋め込む -->
+            <div class="form-embed-desktop">
+              <iframe
+                src="https://docs.google.com/forms/d/e/1FAIpQLSdN8N8Mdzr7KFkMplja2YXeGCIJmyumy7EuvyWmM_RmWE5-ag/viewform?embedded=true"
+                title="お問い合わせフォーム（Googleフォーム）"
+                loading="lazy"
+                allow="encrypted-media *; clipboard-write *">
+              </iframe>
+            </div>
+
+          <!-- スマホ用：別タブで開くボタンだけ表示 -->
+            <div class="form-embed-mobile">
+              <p class="note">
+                スマートフォンでは、下のボタンから別ウィンドウでフォームが開きます。<br>
+                ※ フォーム入力中も、ページの上下スクロールがしやすくなります。
+              </p>
+              <a class="btn btn-primary"
+               href="https://docs.google.com/forms/d/e/1FAIpQLSdN8N8Mdzr7KFkMplja2YXeGCIJmyumy7EuvyWmM_RmWE5-ag/viewform"
+               target="_blank" rel="noopener">
+                フォームを開く
+              </a>
+            </div>
 
             <p class="note">※ フォームが表示されない場合は、右側の「メール」からご連絡ください。</p>
-          </div>
+            </div>
 
           <!-- 右：他の連絡手段＋SNS -->
           <aside class="card">
