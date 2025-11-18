@@ -17,9 +17,6 @@ const SYNONYM_GROUPS = [
   // 必要に応じて追加してください。
 ];
 
-// FAQ マッチングの最低スコア
-const MIN_FAQ_SCORE = 3;
-
 /** HMAC-SHA256 (base64) */
 async function sign(secret, bodyText) {
   const key = await crypto.subtle.importKey(
@@ -59,12 +56,6 @@ function expandWithSynonyms(text) {
 
 /**
  * FAQ CSV を読み込む。
- *
- * 列の想定:
- *   - question              … 質問文（あれば優先してマッチングに使用）
- *   - answer                … 回答文
- *   - visibility            … public の行だけ回答候補にする（無ければすべて public 扱い）
- *   - source_url_or_note 等 … あっても無視（マッチングにも回答にも使わない）
  */
 async function loadFaqCsv(csvUrl) {
   const res = await fetch(csvUrl, { cf: { cacheTtl: 60, cacheEverything: true } });
@@ -98,15 +89,16 @@ async function loadFaqCsv(csvUrl) {
   const headerIdx = (name) => header.findIndex(h => h === name.toLowerCase());
 
   const vIdx = headerIdx("visibility");
-  const qIdx = headerIdx("question");
   let aIdx = headerIdx("answer");
-  if (aIdx === -1) aIdx = 3; // 互換用: 4列目を answer とみなす
+  if (aIdx === -1) aIdx = 3;
+  // source_url_or_note は不要だが、列があっても無視できるようにだけインデックスを取っておく
+  let sIdx = headerIdx("source_url_or_note");
+  if (sIdx === -1) sIdx = -1;
 
   const items = rows
     .map(r => {
       const cols = r.map(c => (c ?? "").trim());
 
-      // visibility 列（なければ public）
       let visibility = "public";
       if (vIdx >= 0 && vIdx < cols.length) {
         const v = (cols[vIdx] || "").trim().toLowerCase();
@@ -114,11 +106,10 @@ async function loadFaqCsv(csvUrl) {
       }
 
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
-      const question = qIdx >= 0 && qIdx < cols.length ? (cols[qIdx] || "").trim() : "";
-      // 検索用テキスト: すべての列を結合（互換用）
+      // 出典列は使わない（どの URL から来たかは FAQ 側に文章として書く運用とする）
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
-      return { answer, question, visibility, joined };
+      return { answer, visibility, joined };
     })
     .filter(x => x.visibility === "public" && x.answer);
 
@@ -135,36 +126,24 @@ function normalizeJa(s) {
 
 /**
  * FAQ 1 行に対する一致度。
- *
- * ここでは「ほぼ同じ文かどうか」だけを見る、かなり保守的な判定にします。
- *
- * ルール:
- *   1. ユーザー質問と FAQ 質問を正規化した文字列で比較
- *   2. 完全一致なら高得点
- *   3. どちらか一方がもう一方を含んでいればマッチ（部分一致）
- *   4. それ以外はスコア 0（マッチしない扱い）
- *
- * これにより、「圃場はどこにありますか？」と
- * 「圃場、収穫日、ロットで追跡可能ですか？」のような
- * 方向性の違う質問はマッチしなくなります。
  */
-function scoreFaqItem(item, userText) {
-  const queryNorm = normalizeJa(userText);
+function scoreFaqItem(item, expandedText) {
+  const queryNorm = normalizeJa(expandedText);
   if (!queryNorm) return 0;
 
-  const targetText = item.question || item.joined || "";
-  const targetNorm = normalizeJa(targetText);
+  const targetNorm = normalizeJa(item.joined || "");
   if (!targetNorm) return 0;
 
-  if (targetNorm === queryNorm) {
-    return targetNorm.length * 2;
+  if (queryNorm.length === 1) {
+    return targetNorm.includes(queryNorm) ? 1 : 0;
   }
 
-  if (targetNorm.includes(queryNorm) || queryNorm.includes(targetNorm)) {
-    return Math.min(targetNorm.length, queryNorm.length);
+  let score = 0;
+  for (let i = 0; i < queryNorm.length - 1; i++) {
+    const bg = queryNorm.slice(i, i + 2);
+    if (targetNorm.includes(bg)) score++;
   }
-
-  return 0;
+  return score;
 }
 
 /** HTML → プレーンテキスト */
@@ -186,6 +165,11 @@ function htmlToText(html) {
  * note.com のドメインから、質問に関連する記事を自動検索
  */
 async function searchNoteArticles(noteDomain, expandedText) {
+  // note の検索 URL（例: https://note.com/あなたのアカウント名?q=キーワード）
+  // または Google Custom Search API などを使う方法もあります
+  
+  // ここでは簡易的に、sitemap や RSS から記事一覧を取得する想定
+  // 実装例: note.com/ユーザー名/rss から最新記事を取得
   const rssUrl = `${noteDomain}/rss`;
   
   try {
@@ -194,17 +178,19 @@ async function searchNoteArticles(noteDomain, expandedText) {
     
     const xml = await res.text();
     
+    // RSS から <link> タグを抽出（簡易パース）
     const linkMatches = xml.matchAll(/<link>([^<]+)<\/link>/g);
     const urls = [];
     for (const match of linkMatches) {
       const url = match[1].trim();
-      if (url && url.startsWith("http")) {
+      if (url && url.startsWith('http')) {
         urls.push(url);
       }
     }
     
     if (!urls.length) return null;
     
+    // 各記事をスコアリング
     const queryNorm = normalizeJa(expandedText);
     if (!queryNorm || queryNorm.length < 2) return null;
     
@@ -275,10 +261,12 @@ async function findAnswerFromPages(env, expandedText) {
   let bestScore = 0;
 
   for (const pattern of allowList) {
-    if (pattern.includes("*")) {
-      const baseDomain = pattern.replace("*", "").replace(/\/+$/, "");
+    // ★ ワイルドカード対応（note.com/xxx/* など）
+    if (pattern.includes('*')) {
+      const baseDomain = pattern.replace('*', '').replace(/\/+$/, '');
       
-      if (baseDomain.includes("note.com")) {
+      // note の場合は RSS 検索
+      if (baseDomain.includes('note.com')) {
         const noteUrl = await searchNoteArticles(baseDomain, expandedText);
         if (noteUrl) {
           return {
@@ -290,6 +278,7 @@ async function findAnswerFromPages(env, expandedText) {
       continue;
     }
 
+    // 通常の URL（固定ページ）
     let res;
     try {
       res = await fetch(pattern, { cf: { cacheTtl: 300, cacheEverything: true } });
@@ -329,6 +318,10 @@ async function findAnswerFromPages(env, expandedText) {
 
 /**
  * 質問 → 回答
+ * どこから拾ったか分かるようにデバッグラベルを付与する:
+ *  - [FAQ score=数字] ...  → FAQ から回答
+ *  - [PAGE] ...            → HP / STORES / note から回答
+ *  - [NONE] ...            → どこにも見つからず固定メッセージ
  */
 async function findAnswer(env, userText) {
   const raw = userText || "";
@@ -339,22 +332,30 @@ async function findAnswer(env, userText) {
   let best = null;
   let bestScore = -1;
   for (const it of items) {
-    const sc = scoreFaqItem(it, raw);
+    const sc = scoreFaqItem(it, expanded);
     if (sc > bestScore) {
       best = it;
       bestScore = sc;
     }
   }
 
-  if (best && bestScore >= MIN_FAQ_SCORE) {
-    return { text: best.answer, url: null };
+  // FAQ からの回答
+  if (best && bestScore > 0) {
+    let out = `[FAQ score=${bestScore}] ` + best.answer;
+    // 出典表示はしない（source_url_or_note を使わない前提）
+    return { text: out, url: null };
   }
 
+  // HP / STORES / note からの回答
   const pageAnswer = await findAnswerFromPages(env, expanded);
-  if (pageAnswer) return pageAnswer;
+  if (pageAnswer) {
+    const text = `[PAGE] ` + (pageAnswer.text || "");
+    return { text, url: pageAnswer.url };
+  }
 
+  // どこにも見つからなかった
   return { 
-    text: "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。",
+    text: "[NONE] 該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。",
     url: null
   };
 }
@@ -364,6 +365,7 @@ async function replyToLINE(token, replyToken, text, url = null) {
   let messages;
   
   if (url) {
+    // URL がある場合はボタンテンプレートを使用
     messages = [
       {
         type: "template",
@@ -382,6 +384,7 @@ async function replyToLINE(token, replyToken, text, url = null) {
       }
     ];
   } else {
+    // 通常のテキストメッセージ
     messages = [{ type: "text", text }];
   }
 
@@ -406,6 +409,7 @@ async function replyToLINE(token, replyToken, text, url = null) {
 export async function onRequestPost({ request, env }) {
   const rawBody = await request.text();
 
+  // 署名検証
   const sigHeader = request.headers.get("x-line-signature") || "";
   const expected = await sign(env.LINE_CHANNEL_SECRET, rawBody);
   if (sigHeader !== expected) {
