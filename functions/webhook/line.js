@@ -17,6 +17,12 @@ const SYNONYM_GROUPS = [
   // 必要に応じて追加してください。
 ];
 
+// ★ しきい値（ここがポイント）
+// FAQ の一致度がこの値未満なら FAQ は使わない
+const MIN_FAQ_SCORE = 3;
+// HP / STORES / note ページの一致度がこの値未満なら URL も返さない
+const MIN_PAGE_SCORE = 3;
+
 /** HMAC-SHA256 (base64) */
 async function sign(secret, bodyText) {
   const key = await crypto.subtle.importKey(
@@ -91,7 +97,7 @@ async function loadFaqCsv(csvUrl) {
   const vIdx = headerIdx("visibility");
   let aIdx = headerIdx("answer");
   if (aIdx === -1) aIdx = 3;
-  // source_url_or_note は使わないのでインデックスだけ読み取って無視する
+  // source_url_or_note は使わないので読み取るだけ
   const sIdx = headerIdx("source_url_or_note");
 
   const items = rows
@@ -105,7 +111,6 @@ async function loadFaqCsv(csvUrl) {
       }
 
       const answer = aIdx < cols.length ? (cols[aIdx] || "").trim() : "";
-      // source_url_or_note はここでは使用しない
       const joined = cols.join(" ").replace(/\s+/g, " ");
 
       return { answer, visibility, joined };
@@ -125,6 +130,7 @@ function normalizeJa(s) {
 
 /**
  * FAQ 1 行に対する一致度。
+ * ここでは単純に「2文字ずつの部分文字列が何回出てくるか」をスコアとして使う
  */
 function scoreFaqItem(item, expandedText) {
   const queryNorm = normalizeJa(expandedText);
@@ -160,7 +166,7 @@ function htmlToText(html) {
 }
 
 /**
- * ★ 改良版: ドメインパターン対応（note 専用 RSS は廃止）
+ * ドメインパターン対応（note 専用 RSS は廃止）
  * ALLOW_URLS の例:
  *   https://arayanoen-site.pages.dev/
  *   https://arayanoen-sizen.stores.jp/
@@ -225,7 +231,8 @@ async function findAnswerFromPages(env, expandedText) {
     }
   }
 
-  if (!bestUrl || bestScore === 0) return null;
+  // しきい値未満なら URL も返さない
+  if (!bestUrl || bestScore < MIN_PAGE_SCORE) return null;
 
   return {
     text: "この内容については、こちらのページをご覧ください:",
@@ -251,14 +258,16 @@ async function findAnswer(env, userText) {
     }
   }
 
-  if (best && bestScore > 0) {
-    // 出典列は使わない
+  // FAQ のスコアがしきい値以上のときだけ、その回答を採用
+  if (best && bestScore >= MIN_FAQ_SCORE) {
     return { text: best.answer, url: null };
   }
 
+  // FAQ で決めきれない場合だけ、HP / STORES / note を見る
   const pageAnswer = await findAnswerFromPages(env, expanded);
   if (pageAnswer) return pageAnswer;
 
+  // それでも見つからなければ「該当なし」
   return { 
     text: "該当する回答が見つかりませんでした。よろしければ、キーワードを変えてもう一度お試しください。担当者への取次も可能です。",
     url: null
