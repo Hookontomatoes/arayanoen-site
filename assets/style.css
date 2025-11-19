@@ -272,16 +272,7 @@ tbody tr:nth-child(even){
   bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 100;
 }
-.buy-fab .btn-primary{
-  border-radius: 999px;
-  padding: 12px 18px;                      /* 左のチャットと同じ高さに統一 */
-  border: 1px solid var(--green);
-  background: rgba(255, 255, 255, 0.5);    /* 半透明の白 */
-  color: var(--green);
-  font-weight: 700;
-  box-shadow: 0 8px 24px rgba(0,0,0,.10);
-  backdrop-filter: blur(6px);
-}
+
 @media (min-width: 1024px){
   .buy-fab{
     right: max(20px, env(safe-area-inset-right));
@@ -321,25 +312,29 @@ tbody tr:nth-child(even){
   font-family: inherit;
 }
 
-/* 開閉ボタン（左下）：背景を半透明にして下の内容を透かす */
-.chat-toggle{
+/* 左右フローティングボタン共通スタイル（今すぐ購入 / サイトに質問する） */
+.chat-toggle,
+.buy-fab .btn-primary{
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 12px 18px;                 /* 購入ボタンと同程度の高さに */
+  padding: 12px 18px;                    /* 高さ・太さを共通に */
   border-radius: 999px;
   border: 1px solid var(--green);
-  background: rgba(255, 255, 255, 0.5);  /* 半透明の白 */
-  color: var(--green);                    /* 文字色は緑 */
+  background: rgba(255, 255, 255, 0.5); /* 半透明の白で下がうっすら見える */
+  color: var(--green);
+  font-size: 14px;
   font-weight: 700;
-  cursor: pointer;
   box-shadow: 0 6px 16px rgba(0,0,0,.10);
-  backdrop-filter: blur(6px);             /* 対応ブラウザでは背景が少しぼけて読みやすく */
+  backdrop-filter: blur(6px);            /* 対応ブラウザでは背景を少しぼかす */
 }
+
+/* チャットボタン内の小さいラベル（β版）だけを少し小さく */
 .chat-toggle span{
   font-size: 12px;
   opacity: .85;
 }
+
 
 /* チャット本体パネル */
 .chat-panel{
