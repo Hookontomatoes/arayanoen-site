@@ -265,28 +265,6 @@ tbody tr:nth-child(even){
 .site-footer nav a{ color:var(--navy); font-weight:600 }
 .site-footer small{ color:#9aa3ad }
 
-/* ===== 今すぐ購入：フローティングCTA（常時表示・右下） ===== */
-.buy-fab{
-  position: fixed;
-  right: max(12px, env(safe-area-inset-right));
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  z-index: 100;
-}
-
-/* PC幅では左右のボタンを同じ高さにそろえる */
-@media (min-width: 1024px){
-  .buy-fab{
-    right: max(20px, env(safe-area-inset-right));
-  }
-  .chat-widget{
-    left: max(20px, env(safe-area-inset-left));
-  }
-  .buy-fab,
-  .chat-widget{
-    bottom: calc(20px + env(safe-area-inset-bottom));
-  }
-}
-
 /* ===== ヘッダーブランド：アイコン＋ロゴ画像 ===== */
 .brand{ display:flex; align-items:center; }
 .brand-link{
@@ -307,7 +285,9 @@ tbody tr:nth-child(even){
 /* 旧バッジは使わない（念のため無効化） */
 .brand-badge{ display:none !important; }
 
-/* ===== サイト内チャットボット（左下固定） ===== */
+/* ===== サイト内チャットボット（左下固定）＆今すぐ購入（右下） ===== */
+
+/* 位置（スマホ〜タブレット共通） */
 .chat-widget{
   position: fixed;
   left: max(12px, env(safe-area-inset-left));
@@ -318,8 +298,29 @@ tbody tr:nth-child(even){
   font-family: inherit;
 }
 
-/* ===== 左右フローティングボタン共通デザイン ===== */
-/* このブロックを style.css の一番最後に置いてください。 */
+/* 今すぐ購入：右下の位置（スマホ〜タブレット） */
+.buy-fab{
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+/* PC 幅では左右とも bottom を 20px にそろえる */
+@media (min-width: 1024px){
+  .chat-widget{
+    left: max(20px, env(safe-area-inset-left));
+  }
+  .buy-fab{
+    right: max(20px, env(safe-area-inset-right));
+  }
+  .chat-widget,
+  .buy-fab{
+    bottom: calc(20px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 左右フローティングボタン共通デザイン（今すぐ購入 / サイトに質問する） */
 .chat-toggle,
 .buy-fab .btn-primary{
   display: inline-flex;
@@ -328,7 +329,7 @@ tbody tr:nth-child(even){
   padding: 10px 16px;                    /* 高さ・太さを完全共通に */
   border-radius: 999px;
   border: 1px solid var(--green);
-  background: rgba(255, 255, 255, 0.78); /* 半透明の白 */
+  background: rgba(255, 255, 255, 0.5); /* 半透明の白 */
   color: var(--green);
   font-size: 13px;
   font-weight: 700;
