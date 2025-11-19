@@ -344,11 +344,42 @@
     </section>
   </main>
 
+      </main>
+
+  <!-- サイト内チャットボット -->
+  <div class="chat-widget" aria-live="polite">
+    <div class="chat-panel" aria-hidden="true">
+      <div class="chat-header">
+        <div>
+          <div class="chat-header-title">サイト内質問チャット</div>
+          <div class="chat-header-sub">HPとFAQに載っている内容だけからお答えします</div>
+        </div>
+        <button type="button" class="chat-close" aria-label="チャットを閉じる">×</button>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <form class="chat-form" id="chatForm">
+        <input
+          type="text"
+          class="chat-input"
+          id="chatInput"
+          autocomplete="off"
+          placeholder="このサイトについて質問できます"
+        >
+        <button type="submit" class="chat-send-btn" id="chatSendBtn">送信</button>
+      </form>
+    </div>
+
+    <button type="button" class="chat-toggle" id="chatToggle">
+      サイトに質問する
+      <span>β版</span>
+    </button>
+  </div>
+
   <!-- 共通フッター（任意） -->
   <div id="site-footer"></div>
 
   <script>
-    // 共通フッター読込（ローカル検証は相対パスにしてください。ファイルが無ければコメントアウトでOK）
+    // 共通フッター読込
     fetch('partials/footer.html').then(r=>r.text()).then(h=>{
       document.getElementById('site-footer').innerHTML = h;
     }).catch(()=>{});
@@ -362,13 +393,14 @@
       const cards = Array.from(track.children);
       if(cards.length === 0) return;
 
-      const getCardWidth = () => cards[0].getBoundingClientRect().width + 12; // gap分
+      const getCardWidth = () => cards[0].getBoundingClientRect().width + 12; // gap 分
       let index = 0;
 
       // ドット生成
       dots.innerHTML = '';
       cards.forEach((_,i)=>{
-        const d = document.createElement('div'); d.className='dot'+(i===0?' active':'');
+        const d = document.createElement('div');
+        d.className='dot'+(i===0?' active':'');
         d.addEventListener('click', ()=>goTo(i));
         dots.appendChild(d);
       });
@@ -405,7 +437,92 @@
       window.addEventListener('resize', ()=>goTo(index));
     }
 
+    // スライダー初期化呼び出し（これは今までと同じ行です）
     document.querySelectorAll('.carousel').forEach(initCarousel);
+
+    // ここからチャットボット UI 用のコード
+    (function(){
+      const panel = document.querySelector('.chat-panel');
+      const toggleBtn = document.getElementById('chatToggle');
+      const closeBtn  = document.querySelector('.chat-close');
+      const messagesEl = document.getElementById('chatMessages');
+      const form = document.getElementById('chatForm');
+      const input = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('chatSendBtn');
+
+      if (!panel || !toggleBtn || !messagesEl || !form || !input || !sendBtn) return;
+
+      function openPanel(){
+        panel.classList.add('is-open');
+        panel.setAttribute('aria-hidden', 'false');
+        input.focus();
+      }
+      function closePanel(){
+        panel.classList.remove('is-open');
+        panel.setAttribute('aria-hidden', 'true');
+      }
+
+      function appendMessage(text, who){
+        const div = document.createElement('div');
+        div.className = 'chat-msg ' + (who === 'user' ? 'user' : 'bot');
+        div.textContent = text;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      // 初期メッセージ
+      appendMessage('このチャットは、あらや農園のHPとFAQに掲載されている内容だけからお答えします。', 'bot');
+
+      toggleBtn.addEventListener('click', function(){
+        if (panel.classList.contains('is-open')) {
+          closePanel();
+        } else {
+          openPanel();
+        }
+      });
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function(){
+          closePanel();
+        });
+      }
+
+      form.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        appendMessage(text, 'user');
+        input.value = '';
+        sendBtn.disabled = true;
+
+        try {
+          const res = await fetch('/faq-bot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+          });
+
+          if (!res.ok) {
+            appendMessage('回答の取得に失敗しました。時間をおいて再度お試しください。', 'bot');
+          } else {
+            const data = await res.json();
+            if (data && data.answer) {
+              appendMessage(data.answer, 'bot');
+              if (data.url) {
+                appendMessage('関連ページ: ' + data.url, 'bot');
+              }
+            } else {
+              appendMessage('該当する回答が見つかりませんでした。お問い合わせフォームもご利用ください。', 'bot');
+            }
+          }
+        } catch (err) {
+          appendMessage('通信エラーが発生しました。ネットワーク環境をご確認ください。', 'bot');
+        } finally {
+          sendBtn.disabled = false;
+        }
+      });
+    })();
   </script>
 </body>
 </html>
