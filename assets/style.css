@@ -276,7 +276,7 @@ tbody tr:nth-child(even){
   border-radius: 999px;
   padding: 14px 18px;
   border: 1px solid var(--green);
-  background: rgba(255, 255, 255, 0.8);  /* 半透明の白 */
+  background: rgba(255, 255, 255, 0.6);  /* 半透明の白 */
   color: var(--green);                    /* 文字色は緑 */
   box-shadow: 0 8px 24px rgba(0,0,0,.10);
   backdrop-filter: blur(6px);
@@ -328,10 +328,10 @@ tbody tr:nth-child(even){
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 14px;
+  padding: 14px 18px;
   border-radius: 999px;
   border: 1px solid var(--green);
-  background: rgba(255, 255, 255, 0.7);  /* 半透明の白 */
+  background: rgba(255, 255, 255, 0.6);  /* 半透明の白 */
   color: var(--green);                    /* 文字色は緑 */
   font-weight: 700;
   cursor: pointer;
