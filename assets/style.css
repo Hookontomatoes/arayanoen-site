@@ -285,8 +285,6 @@ tbody tr:nth-child(even){
 /* 旧バッジは使わない（念のため無効化） */
 .brand-badge{ display:none !important; }
 
-/* ===== サイト内チャットボット（左下固定）＆今すぐ購入（右下） ===== */
-
 /* 位置（スマホ〜タブレット共通） */
 .chat-widget{
   position: fixed;
@@ -299,24 +297,23 @@ tbody tr:nth-child(even){
 }
 
 /* 今すぐ購入：右下の位置（スマホ〜タブレット） */
+/* → チャットより 2px だけ下げて、見た目の高さをそろえる */
 .buy-fab{
   position: fixed;
   right: max(12px, env(safe-area-inset-right));
-  bottom: calc(12px + env(safe-area-inset-bottom));
+  bottom: calc(10px + env(safe-area-inset-bottom));  /* ここを 12px → 10px に */
   z-index: 100;
 }
 
-/* PC 幅では左右とも bottom を 20px にそろえる */
+/* PC 幅では左右とも 20px 付近だが、購入ボタンを 2px 下げる */
 @media (min-width: 1024px){
   .chat-widget{
     left: max(20px, env(safe-area-inset-left));
+    bottom: calc(20px + env(safe-area-inset-bottom));
   }
   .buy-fab{
     right: max(20px, env(safe-area-inset-right));
-  }
-  .chat-widget,
-  .buy-fab{
-    bottom: calc(20px + env(safe-area-inset-bottom));
+    bottom: calc(18px + env(safe-area-inset-bottom));  /* 20px → 18px に */
   }
 }
 
