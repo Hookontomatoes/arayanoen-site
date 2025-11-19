@@ -266,17 +266,14 @@ tbody tr:nth-child(even){
 .site-footer small{ color:#9aa3ad }
 
 /* ===== 今すぐ購入：フローティングCTA（常時表示・右下） ===== */
-.buy-fab{
-  position: fixed;
-  right: max(12px, env(safe-area-inset-right));
-  bottom: calc(12px + env(safe-area-inset-bottom));
-  z-index: 100;
-}
 .buy-fab .btn-primary{
   border-radius: 999px;
   padding: 14px 18px;
   border: 1px solid var(--green);
-  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+  background: rgba(255, 255, 255, 0.8);  /* 半透明の白 */
+  color: var(--green);                    /* 文字色は緑 */
+  box-shadow: 0 8px 24px rgba(0,0,0,.10);
+  backdrop-filter: blur(6px);
 }
 @media (max-width: 420px){
   .buy-fab .btn-primary{ padding: 16px 20px; font-weight: 800; }
@@ -320,7 +317,7 @@ tbody tr:nth-child(even){
   font-family: inherit;
 }
 
-/* 開閉ボタン */
+/* 開閉ボタン（左下）：背景を半透明にして下の内容を透かす */
 .chat-toggle{
   display: inline-flex;
   align-items: center;
@@ -328,11 +325,12 @@ tbody tr:nth-child(even){
   padding: 10px 14px;
   border-radius: 999px;
   border: 1px solid var(--green);
-  background: var(--green);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.7);  /* 半透明の白 */
+  color: var(--green);                    /* 文字色は緑 */
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0,0,0,.16);
+  box-shadow: 0 6px 16px rgba(0,0,0,.10);
+  backdrop-filter: blur(6px);             /* 対応ブラウザでは背景が少しぼけて読みやすく */
 }
 .chat-toggle span{
   font-size: 12px;
@@ -436,13 +434,13 @@ tbody tr:nth-child(even){
   cursor: default;
 }
 
-/* モバイルでは少し大きめに */
-@media (max-width: 480px){
-  .chat-panel{
-    max-height: 65vh;
+/* スマホで入力欄をタップしても拡大されないようにする */
+@media (max-width: 600px){
+  .chat-input{
+    font-size: 16px;       /* ここが重要です：16px以上にする */
+    line-height: 1.4;
   }
-  .chat-toggle{
-    padding: 10px 16px;
+  .chat-send-btn{
+    font-size: 15px;
   }
 }
-
