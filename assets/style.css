@@ -274,15 +274,13 @@ tbody tr:nth-child(even){
 }
 .buy-fab .btn-primary{
   border-radius: 999px;
-  padding: 14px 18px;
+  padding: 12px 18px;                      /* 左のチャットと同じ高さに統一 */
   border: 1px solid var(--green);
-  background: rgba(255, 255, 255, 0.6);  /* 半透明の白 */
-  color: var(--green);                    /* 文字色は緑 */
+  background: rgba(255, 255, 255, 0.5);    /* 半透明の白 */
+  color: var(--green);
+  font-weight: 700;
   box-shadow: 0 8px 24px rgba(0,0,0,.10);
   backdrop-filter: blur(6px);
-}
-@media (max-width: 420px){
-  .buy-fab .btn-primary{ padding: 16px 20px; font-weight: 800; }
 }
 @media (min-width: 1024px){
   .buy-fab{
@@ -328,10 +326,10 @@ tbody tr:nth-child(even){
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 14px 18px;
+  padding: 12px 18px;                 /* 購入ボタンと同程度の高さに */
   border-radius: 999px;
   border: 1px solid var(--green);
-  background: rgba(255, 255, 255, 0.6);  /* 半透明の白 */
+  background: rgba(255, 255, 255, 0.5);  /* 半透明の白 */
   color: var(--green);                    /* 文字色は緑 */
   font-weight: 700;
   cursor: pointer;
