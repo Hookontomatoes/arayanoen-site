@@ -266,6 +266,12 @@ tbody tr:nth-child(even){
 .site-footer small{ color:#9aa3ad }
 
 /* ===== 今すぐ購入：フローティングCTA（常時表示・右下） ===== */
+.buy-fab{
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 100;
+}
 .buy-fab .btn-primary{
   border-radius: 999px;
   padding: 14px 18px;
