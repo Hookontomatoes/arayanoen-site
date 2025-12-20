@@ -496,7 +496,7 @@
         sendBtn.disabled = true;
 
         try {
-          const res = await fetch('/faq-bot', {
+          const res = await fetch('/webhook/faq-bot', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: text })
