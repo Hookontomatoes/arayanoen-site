@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>あらや農園｜自然と調和する農業 × デザイン × 開発</title>
+  <meta name="description" content="青森・あらや農園。農薬を使わない野菜と、Webデザイン・ソフト開発で現場を支えます。">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+/* ほのか明朝（WOFF2） */
+@font-face{
+  font-family: "Honoka Shin Mincho L";
+  src: url("assets/fonts/honoka-mincho/Honoka_Shin_Mincho_L.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* ヒーロー見出しだけ ほのか明朝の斜体風にする */
+.hero .honoka-italic{
+  font-family: "Honoka Shin Mincho L", serif;
+  font-style: oblique 14deg;  /* 斜体の傾き。強すぎれば 10deg、弱ければ 14deg に */
+  letter-spacing: .02em;
+}
+</style>
+
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <div class="brand">
+  <a href="/" class="brand-link" aria-label="あらや農園 トップへ">
+    <img src="assets/images/brand/mascot.png" alt="" class="brand-icon" decoding="async">
+    <img src="assets/images/brand/logo-text.png" alt="あらや農園" class="brand-logo" decoding="async">
+  </a>
+</div>
+      <div class="cta-head">
+        <a href="#contact">お問い合わせ</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-card">
+          <div>
+            <h1 class="honoka-italic">自然と調和し<br>農とくらしを“楽しく・解く”</h1>
+            <p class="lead">農薬を使わない自然農法の実践と、Webデザイン／ソフト開発で地域を支えます</p>
+          </div>
+          <div class="kpis">
+            <span>栽培・直売</span><span>LP/HP制作</span><span>業務ツール開発</span>
+          </div>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="products/">季節の野菜・加工品を見る</a>
+            <a class="btn" href="works/">制作・開発の実績</a>
+            <a class="btn" href="#contact">お問い合わせ</a>
+          </div>
+        </div>
+      </div>
+    </section>
