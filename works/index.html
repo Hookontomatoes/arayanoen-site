@@ -3,60 +3,505 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>あらや農園｜自然と調和する農業 × デザイン × 開発</title>
-  <meta name="description" content="青森・あらや農園。農薬を使わない野菜と、Webデザイン・ソフト開発で現場を支えます。">
+  <title>あらや農園｜講座・スクール（農業・プログラミング・Webデザイン）</title>
+  <meta name="description" content="あらや農園の小学生向け農業体験講座・プログラミング講座・Webデザイン講座のご案内。学校・団体さま向け出張授業やオンライン講座に対応しています。">
   <link rel="stylesheet" href="../assets/style.css">
   <style>
-/* ほのか明朝（WOFF2） */
-@font-face{
-  font-family: "Honoka Shin Mincho L";
-  src: url("assets/fonts/honoka-mincho/Honoka_Shin_Mincho_L.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
+  /* ほのか明朝（WOFF2） */
+  @font-face{
+    font-family: "Honoka Shin Mincho L";
+    src: url("../assets/fonts/honoka-mincho/Honoka_Shin_Mincho_L.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+  }
 
-/* ヒーロー見出しだけ ほのか明朝の斜体風にする */
-.hero .honoka-italic{
-  font-family: "Honoka Shin Mincho L", serif;
-  font-style: oblique 14deg;  /* 斜体の傾き。強すぎれば 10deg、弱ければ 14deg に */
-  letter-spacing: .02em;
-}
-</style>
-
+  /* ヒーロー見出しだけ ほのか明朝の斜体風にする */
+  .hero .honoka-italic{
+    font-family: "Honoka Shin Mincho L", serif;
+    font-style: oblique 14deg;
+    letter-spacing: .02em;
+  }
+  </style>
 </head>
 <body>
   <header>
     <div class="nav">
       <div class="brand">
-  <a href="/" class="brand-link" aria-label="あらや農園 トップへ">
-    <img src="assets/images/brand/mascot.png" alt="" class="brand-icon" decoding="async">
-    <img src="assets/images/brand/logo-text.png" alt="あらや農園" class="brand-logo" decoding="async">
-  </a>
-</div>
+        <a href="/" class="brand-link" aria-label="あらや農園 トップへ">
+          <img src="../assets/images/brand/mascot.png" alt="" class="brand-icon" decoding="async">
+          <img src="../assets/images/brand/logo-text.png" alt="あらや農園" class="brand-logo" decoding="async">
+        </a>
+      </div>
       <div class="cta-head">
-        <a href="#contact">お問い合わせ</a>
+        <a href="#contact">講座のお問い合わせ</a>
       </div>
     </div>
   </header>
 
   <main>
-    <!-- HERO -->
+    <!-- HERO（講座ページ用） -->
     <section class="hero">
       <div class="container">
         <div class="hero-card">
           <div>
-            <h1 class="honoka-italic">自然と調和し<br>農とくらしを“楽しく・解く”</h1>
-            <p class="lead">農薬を使わない自然農法の実践と、Webデザイン／ソフト開発で地域を支えます</p>
+            <h1 class="honoka-italic">農業・プログラミング・デザインを<br>子どもたちと“楽しく・解く”講座</h1>
+            <p class="lead">
+              畑での体験学習と、プログラミングやWebデザインを組み合わせた、<br>
+              小学生向けの出張授業／オンライン講座をご提供します。
+            </p>
           </div>
           <div class="kpis">
-            <span>栽培・直売</span><span>LP/HP制作</span><span>業務ツール開発</span>
+            <span>小学生向け農業講座</span><span>プログラミング講座</span><span>Webデザイン入門</span>
           </div>
           <div class="hero-cta">
-            <a class="btn btn-primary" href="products/">季節の野菜・加工品を見る</a>
-            <a class="btn" href="works/">制作・開発の実績</a>
-            <a class="btn" href="#contact">お問い合わせ</a>
+            <a class="btn btn-primary" href="#lessons-agri">農業講座を見る</a>
+            <a class="btn" href="#lessons-programming">プログラミング講座を見る</a>
+            <a class="btn" href="#contact">講座に関するお問い合わせ</a>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- 概要 -->
+    <section id="lessons-overview">
+      <div class="container">
+        <div class="about-block">
+          <h2>講座・スクール概要</h2>
+          <div class="card">
+            <p>
+              あらや農園では、自然農法の現場経験と、ソフトウェア開発・Web制作の経験をいかし、<br>
+              小学生向けに「農業」「プログラミング」「Webデザイン」を組み合わせた講座・スクールを行っています。
+            </p>
+            <ul>
+              <li>学校の総合学習・クラブ活動・放課後子ども教室向けの出張授業</li>
+              <li>地域イベント・親子向けワークショップ</li>
+              <li>オンラインでの少人数講座（プログラミング／Webデザイン入門 等）</li>
+            </ul>
+            <p class="note">
+              ※ 対象学年・人数・ご予算・実施形式（対面／オンライン）に応じて、内容を調整いたします。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 小学生向け 農業体験講座 -->
+    <section id="lessons-agri">
+      <div class="container">
+        <div class="about-block">
+          <h2>小学生向け 農業体験講座</h2>
+
+          <div class="card">
+            <h3>コンセプト</h3>
+            <p>
+              土にふれ、タネをまき、自分の手で収穫する。<br>
+              「あたりまえに食べている野菜がどこから来るのか」を体験しながら学ぶ、小学生向け農業体験講座です。<br>
+              自然のしくみやいのちのつながりを、五感を使って楽しく学ぶことを大切にしています。
+            </p>
+
+            <h3>特徴</h3>
+            <ul>
+              <li>実際の畑で「見る・さわる・においをかぐ」体験型プログラム</li>
+              <li>低学年から高学年まで、学年に合わせて内容を調整</li>
+              <li>総合学習・食育・環境学習としても活用可能</li>
+            </ul>
+
+            <h3>カリキュラム例</h3>
+
+            <details>
+              <summary>タネから食卓までコース（３〜４回シリーズ）</summary>
+              <div class="card" style="margin-top:8px">
+                <p>タネまきから収穫、試食までを一通り体験する、基本となるコースです。</p>
+                <ul>
+                  <li><strong>第１回：タネまきと土の観察</strong><br>
+                    野菜のタネクイズ／畑の土をさわって観察／タネまき体験（にんじん・大根・ミニトマトなど）
+                  </li>
+                  <li><strong>第２回：生長のようすを見てみよう</strong><br>
+                    芽や葉の観察・背丈の計測／観察カードづくり／水やり体験と、野菜が育つ環境の話
+                  </li>
+                  <li><strong>第３回：収穫と試食</strong><br>
+                    抜く・切る・はさみで収穫などの体験／ゆで野菜・スティック野菜などの簡単な試食／「タネ→野菜→食卓」をふりかえり
+                  </li>
+                  <li><strong>第４回（任意）：発表会</strong><br>
+                    写真や絵を使った振り返り発表、ミニアルバムづくり 等
+                  </li>
+                </ul>
+              </div>
+            </details>
+
+            <details>
+              <summary>土といのちを学ぶコース（環境・理科寄り）</summary>
+              <div class="card" style="margin-top:8px">
+                <p>「土は生きもののすみか」という視点で、環境やいのちのつながりを学ぶコースです。</p>
+                <ul>
+                  <li>畑・校庭・山の土など、複数の土を見比べる</li>
+                  <li>水のしみこみ方を比べる簡単な実験</li>
+                  <li>ミミズや小さな虫を観察し、土を育てる生き物の役割を学ぶ</li>
+                  <li>落ち葉や刈り草を使った、かんたんな土づくり体験</li>
+                </ul>
+              </div>
+            </details>
+
+            <details>
+              <summary>収穫フェスティバル（１日完結型）</summary>
+              <div class="card" style="margin-top:8px">
+                <p>学校行事やバザー前などに合わせて実施しやすい、半日〜１日のイベント型プログラムです。</p>
+                <ul>
+                  <li>オープニング：畑の一年のようすを写真で紹介</li>
+                  <li>収穫体験：班ごとに収穫し、コンテナに集めて計量</li>
+                  <li>へんてこ野菜コンテストや野菜クイズ</li>
+                  <li>試食またはおみやげ用の袋詰め体験</li>
+                  <li>最後に「今日いちばん心に残ったこと」を一言ずつ発表</li>
+                </ul>
+              </div>
+            </details>
+
+            <h3>想定対象・実施形態</h3>
+            <ul>
+              <li>対象：小学１〜６年生（学年混在クラスも可）</li>
+              <li>時間：１コマ４５〜６０分 × １〜４回を目安</li>
+              <li>場所：学校の畑・近隣の農園・地域の体験農園 等</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 小学生向け プログラミング講座 -->
+    <section id="lessons-programming">
+      <div class="container">
+        <div class="about-block">
+          <h2>小学生向け プログラミング講座</h2>
+
+          <div class="card">
+            <h3>コンセプト</h3>
+            <p>
+              「むずかしいコードを書く」ことよりも、<br>
+              「考えたことを順番に伝えると、コンピュータや人が動いてくれる」ことを体験する講座です。<br>
+              パソコンやタブレットが初めての子どもでも、ゲームづくりやアニメーションを通して、楽しみながら論理的思考力を育てます。
+            </p>
+
+            <h3>特徴</h3>
+            <ul>
+              <li>初心者歓迎。文字入力が苦手でも取り組める内容</li>
+              <li>ブロックをつなげるScratchを中心に、「順番」「くり返し」「条件分岐」を体験</li>
+              <li>パソコンを使わないアンプラグド講座も用意</li>
+            </ul>
+
+            <h3>カリキュラム例</h3>
+
+            <details>
+              <summary>アンプラグド・プログラミング入門（パソコンなし）</summary>
+              <div class="card" style="margin-top:8px">
+                <p>カードや体を使って、「命令の順番」を考える入門コースです。</p>
+                <ul>
+                  <li>友だちロボットを動かそう：命令カードを並べて、人間ロボットをゴールまで動かす</li>
+                  <li>もし〜なら〜ゲーム：条件分岐の考え方をゲーム形式で体験</li>
+                  <li>オリジナルルールづくり：グループごとにオリジナルゲームを考え、別グループに遊んでもらう</li>
+                </ul>
+              </div>
+            </details>
+
+            <details>
+              <summary>Scratchでゲームづくり入門</summary>
+              <div class="card" style="margin-top:8px">
+                <p>ブロックを組み合わせてプログラムを作る「Scratch」を使った講座です。</p>
+                <ul>
+                  <li>ねこを動かしてみよう：移動や回転のブロックでアニメーションづくり</li>
+                  <li>くり返しと条件分岐：よけるゲーム・キャッチゲームづくり</li>
+                  <li>作品発表会：自分たちで作ったゲームやアニメーションを発表</li>
+                </ul>
+              </div>
+            </details>
+
+            <details>
+              <summary>農業・環境データとつなげるプログラミング</summary>
+              <div class="card" style="margin-top:8px">
+                <p>畑や環境データと組み合わせて、データの「見える化」に挑戦するコースです。</p>
+                <ul>
+                  <li>サンプルデータ（気温や収穫量など）から、簡単なグラフを作成</li>
+                  <li>「一番収穫量が多かった日は？」「一番暑かった日は？」を調べるクイズプログラムづくり</li>
+                  <li>「データを集めて、プログラムで分析する」体験を通じて、学びと生活のつながりを実感</li>
+                </ul>
+              </div>
+            </details>
+
+            <h3>想定対象・実施形態</h3>
+            <ul>
+              <li>対象：小学３〜６年生</li>
+              <li>時間：１コマ４５〜６０分 × １〜３回を目安</li>
+              <li>形式：学校のパソコン教室／タブレット／オンライン など環境に合わせて構成</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Webデザイン入門（簡易案内） -->
+    <section id="lessons-web">
+      <div class="container">
+        <div class="about-block">
+          <h2>Webデザイン入門（ご希望の方向け）</h2>
+          <div class="card">
+            <p>
+              文字や写真の配置、色の組み合わせなど、「見やすく・伝わりやすい」デザインの基本を、小学生にも分かりやすくお伝えする講座です。<br>
+              簡単なLP（ランディングページ）やバナーのラフづくり、ワイヤーフレームづくりなどを通して、Webの仕組みや情報整理のコツを学びます。
+            </p>
+            <p class="note">
+              ※ Webデザイン講座は、農業講座・プログラミング講座と組み合わせた「特別授業」としての実施も可能です。詳細はお問い合わせください。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 講座カスタマイズに関する一文 -->
+    <section id="lesson-contact-note">
+      <div class="container">
+        <div class="card">
+          <p class="note">
+            学校・団体さま向けに、学年や学習テーマ・ご希望の教科に合わせた内容のカスタマイズも承ります。お気軽にお問い合わせください。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT（講座用お問い合わせ） -->
+    <section id="contact">
+      <div class="container contact-narrow">
+        <div class="band-title">
+          <h2>講座に関するお問い合わせ</h2>
+          <span class="more" aria-hidden="true">学校・団体さま歓迎です</span>
+        </div>
+
+        <div class="grid grid-2 contact-grid">
+          <!-- 左：フォーム本体 -->
+          <div class="card form-embed">
+            <h3 style="margin:0 0 8px">Googleフォーム</h3>
+            <p class="note">送信後に控えメールが届きます。講座名や希望内容をご記入ください。</p>
+
+            <!-- PC・タブレット用：ページ内に埋め込む -->
+            <div class="form-embed-desktop">
+              <iframe
+                src="https://docs.google.com/forms/d/e/1FAIpQLSdN8N8Mdzr7KFkMplja2YXeGCIJmyumy7EuvyWmM_RmWE5-ag/viewform?embedded=true"
+                title="お問い合わせフォーム（Googleフォーム）"
+                loading="lazy"
+                allow="encrypted-media *; clipboard-write *">
+              </iframe>
+            </div>
+
+            <!-- スマホ用：別タブで開くボタンだけ表示 -->
+            <div class="form-embed-mobile">
+              <p class="note">
+                スマートフォンでは、下のボタンから別ウィンドウでフォームが開きます。<br>
+                講座名や実施希望時期・対象学年などをご記入ください。
+              </p>
+              <a class="btn btn-primary"
+                 href="https://docs.google.com/forms/d/e/1FAIpQLSdN8N8Mdzr7KFkMplja2YXeGCIJmyumy7EuvyWmM_RmWE5-ag/viewform"
+                 target="_blank" rel="noopener">
+                フォームを開く
+              </a>
+            </div>
+
+            <p class="note">※ フォームが表示されない場合は、右側の「メール」からご連絡ください。</p>
+          </div>
+
+          <!-- 右：他の連絡手段＋SNS -->
+          <aside class="card">
+            <h3 style="margin:0 0 8px">その他の連絡方法／SNS</h3>
+            <div class="btns" style="margin:8px 0 12px">
+              <a class="btn" href="https://www.instagram.com/arayanoen/" target="_blank" rel="noopener">Instagram</a>
+              <a class="btn" href="https://arayanoen-sizen.stores.jp/" target="_blank" rel="noopener">STORESで問い合わせ</a>
+              <a class="btn btn-primary" href="mailto:arayanoen2018faq@gmail.com?subject=%E8%AC%9B%E5%BA%A7%E3%81%AB%E9%96%A2%E3%81%99%E3%82%8B%E3%81%8A%E5%95%8F%E3%81%84%E5%90%88%E3%82%8F%E3%81%9B&body=%E3%81%8A%E5%90%8D%E5%89%8D%EF%BC%9A%0D%0A%E3%81%94%E6%B1%82%E4%BA%8B%E5%86%85%E5%AE%B9%EF%BC%9A%0D%0A%E5%AF%BE%E8%B1%A1%E5%AD%A6%E5%B9%B4%EF%BC%9A%0D%0A%E5%AE%9F%E6%96%BD%E5%B8%8C%E6%9C%9B%E6%99%82%E6%9C%9F%EF%BC%9A">メール</a>
+            </div>
+
+            <h4 style="margin:10px 0 6px">返信目安</h4>
+            <p class="note">通常2〜3営業日以内にご返信します。</p>
+
+            <h4 style="margin:10px 0 6px">個人情報の取り扱い</h4>
+            <p class="note">
+              送信いただく情報は、回答・ご連絡の目的に限り利用します。詳細は
+              <a href="../privacy/" target="_blank" rel="noopener">プライバシーポリシー</a>をご確認ください。
+            </p>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- サイト内チャットボット -->
+  <div class="chat-widget" aria-live="polite">
+    <div class="chat-panel" aria-hidden="true">
+      <div class="chat-header">
+        <div>
+          <div class="chat-header-title">サイト内質問チャット</div>
+          <div class="chat-header-sub">HPとFAQに載っている内容だけからお答えします</div>
+        </div>
+        <button type="button" class="chat-close" aria-label="チャットを閉じる">×</button>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <form class="chat-form" id="chatForm">
+        <input
+          type="text"
+          class="chat-input"
+          id="chatInput"
+          autocomplete="off"
+          placeholder="このサイトについて質問できます"
+        >
+        <button type="submit" class="chat-send-btn" id="chatSendBtn">送信</button>
+      </form>
+    </div>
+
+    <button type="button" class="chat-toggle" id="chatToggle">
+      サイトに質問する
+    </button>
+  </div>
+
+  <!-- 共通フッター -->
+  <div id="site-footer"></div>
+
+  <script>
+    // 共通フッター読込（works からの相対パスに変更）
+    fetch('../partials/footer.html').then(r=>r.text()).then(h=>{
+      document.getElementById('site-footer').innerHTML = h;
+    }).catch(()=>{});
+
+    // スライダーがあれば初期化（このページでは現状未使用）
+    function initCarousel(root){
+      const track = root.querySelector('.track');
+      const prev  = root.querySelector('.navprev');
+      const next  = root.querySelector('.navnext');
+      const dots  = root.querySelector('.dots');
+      const cards = Array.from(track ? track.children : []);
+      if(!track || cards.length === 0) return;
+
+      const getCardWidth = () => cards[0].getBoundingClientRect().width + 12;
+      let index = 0;
+
+      dots.innerHTML = '';
+      cards.forEach((_,i)=>{
+        const d = document.createElement('div');
+        d.className='dot'+(i===0?' active':'');
+        d.addEventListener('click', ()=>goTo(i));
+        dots.appendChild(d);
+      });
+      const setDots = ()=>{
+        dots.querySelectorAll('.dot').forEach((e,i)=>e.classList.toggle('active', i===index));
+      };
+
+      const goTo = (i)=>{
+        index = Math.max(0, Math.min(cards.length-1, i));
+        track.scrollTo({left: index * getCardWidth(), behavior:'smooth'});
+        setDots();
+      };
+      if (prev) prev.addEventListener('click', ()=>goTo(index-1));
+      if (next) next.addEventListener('click', ()=>goTo(index+1));
+
+      let startX=null, scrollStart=null;
+      track.addEventListener('touchstart', (e)=>{
+        startX = e.touches[0].clientX; scrollStart = track.scrollLeft;
+      }, {passive:true});
+      track.addEventListener('touchmove', (e)=>{
+        if(startX==null) return;
+        const dx = e.touches[0].clientX - startX;
+        track.scrollLeft = scrollStart - dx;
+      }, {passive:true});
+      track.addEventListener('touchend', ()=>{
+        const cw = getCardWidth();
+        index = Math.round(track.scrollLeft / cw);
+        goTo(index);
+        startX=null;
+      });
+
+      window.addEventListener('resize', ()=>goTo(index));
+    }
+
+    document.querySelectorAll('.carousel').forEach(initCarousel);
+
+    // チャットボット UI 用コード
+    (function(){
+      const panel = document.querySelector('.chat-panel');
+      const toggleBtn = document.getElementById('chatToggle');
+      const closeBtn  = document.querySelector('.chat-close');
+      const messagesEl = document.getElementById('chatMessages');
+      const form = document.getElementById('chatForm');
+      const input = document.getElementById('chatInput');
+      const sendBtn = document.getElementById('chatSendBtn');
+
+      if (!panel || !toggleBtn || !messagesEl || !form || !input || !sendBtn) return;
+
+      function openPanel(){
+        panel.classList.add('is-open');
+        panel.setAttribute('aria-hidden', 'false');
+        input.focus();
+      }
+      function closePanel(){
+        panel.classList.remove('is-open');
+        panel.setAttribute('aria-hidden', 'true');
+      }
+
+      function appendMessage(text, who){
+        const div = document.createElement('div');
+        div.className = 'chat-msg ' + (who === 'user' ? 'user' : 'bot');
+        div.textContent = text;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+
+      // 初期メッセージ
+      appendMessage('このチャットは、あらや農園のHPとFAQに掲載されている内容だけからお答えします。', 'bot');
+
+      toggleBtn.addEventListener('click', function(){
+        if (panel.classList.contains('is-open')) {
+          closePanel();
+        } else {
+          openPanel();
+        }
+      });
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function(){
+          closePanel();
+        });
+      }
+
+      form.addEventListener('submit', async function(e){
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        appendMessage(text, 'user');
+        input.value = '';
+        sendBtn.disabled = true;
+
+        try {
+          const res = await fetch('/webhook/faq-bot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+          });
+
+          if (!res.ok) {
+            appendMessage('回答の取得に失敗しました。時間をおいて再度お試しください。', 'bot');
+          } else {
+            const data = await res.json();
+            if (data && data.answer) {
+              appendMessage(data.answer, 'bot');
+              if (data.url) {
+                appendMessage('関連ページ: ' + data.url, 'bot');
+              }
+            } else {
+              appendMessage('該当する回答が見つかりませんでした。お問い合わせフォームもご利用ください。', 'bot');
+            }
+          }
+        } catch (err) {
+          appendMessage('通信エラーが発生しました。ネットワーク環境をご確認ください。', 'bot');
+        } finally {
+          sendBtn.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
