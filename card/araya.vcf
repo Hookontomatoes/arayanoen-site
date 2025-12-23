@@ -8,9 +8,13 @@ TEL;TYPE=CELL:09035429466
 EMAIL:arayanoen2018@gmail.com
 ADR;TYPE=WORK:;;青森県八戸市根城字大久保10-8;八戸市;青森県;039-1166;日本
 URL:https://arayanoen-site.pages.dev/
-PHOTO;VALUE=URI:https://arayanoen-site.pages.dev/card/mascot.png
-NOTE:自然農法での野菜の栽培・販売、フリーランスSE（ソフト開発からWebデザインまで)
-NOTE:公式LINE https://lin.ee/XGwgX6O
-NOTE:Instagram https://www.instagram.com/arayanoen/
-NOTE:note https://note.com/araya_noen2018
+
+item1.URL:https://lin.ee/XGwgX6O
+item1.X-ABLabel:公式LINE
+item2.URL:https://www.instagram.com/arayanoen/
+item2.X-ABLabel:Instagram
+item3.URL:https://note.com/araya_noen2018
+item3.X-ABLabel:note
+
+NOTE:自然農法での野菜の栽培・販売\, フリーランスSE（ソフト開発からWebデザインまで）\n公式LINE https://lin.ee/XGwgX6O\nInstagram https://www.instagram.com/arayanoen/\nnote https://note.com/araya_noen2018
 END:VCARD
