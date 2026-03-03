@@ -379,12 +379,26 @@
         const title = el.querySelector("title").textContent;
         const link = el.querySelector("link").textContent;
 
-        const article = document.createElement("div");
-article.innerHTML = `
-  <h3><a href="${link}" target="_blank">${title}</a></h3>
-`;
-container.appendChild(article);
-        }
+        const thumbnail =
+        el.querySelector("media\\:thumbnail")?.getAttribute("url") ||
+        el.querySelector("enclosure")?.getAttribute("url") ||
+        "";
+
+        const article = document.createElement("article");
+        article.className = "card";
+
+        article.innerHTML = `
+          <div class="card-thumb">
+            <img loading="lazy" src="${thumbnail}" alt="">
+          </div>
+        <div class="body">
+        <h3>${title}</h3>
+        <a class="go" href="${link}" target="_blank">noteで読む</a>
+      </div>
+      `;
+
+      container.appendChild(article);
+          
       });
     });
     
