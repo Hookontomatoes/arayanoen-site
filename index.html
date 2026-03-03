@@ -207,20 +207,60 @@
 
     <!-- 3. ブログ（note） -->
     <section id="note-blog">
-      <div class="container">
-        <div class="band-title">
-          <h2>3. ブログ</h2>
-          <a class="more" href="https://note.com/araya_noen2018" target="_blank">noteを見る →</a>
-        </div>
+  <div class="container">
+    <div class="band-title">
+      <h2>3. ブログ</h2>
+      <a class="more" href="https://note.com/araya_noen2018" target="_blank">noteを見る →</a>
+    </div>
 
-        <div class="carousel" data-carousel="note">
-          <button class="navbtn navprev" aria-label="前へ">‹</button>
-        <div class="track" id="noteTrack"></div>
-          <button class="navbtn navnext" aria-label="次へ">›</button>
-        <div class="dots" aria-hidden="true"></div>
-        </div>
+    <div id="note-display-area" style="display: flex !important; gap: 15px !important; width: 100% !important; margin: 20px 0 !important; flex-wrap: nowrap !important; justify-content: space-between !important;">
       </div>
-    </section>
+  </div>
+</section>
+
+<script>
+  (function() {
+    // キャッシュ回避用のタイムスタンプ
+    const workerUrl = "https://note-rss.arayanoen2018.workers.dev/?t=" + Date.now();
+    
+    fetch(workerUrl)
+      .then(r => r.text())
+      .then(xml => {
+        const data = new DOMParser().parseFromString(xml, "text/xml");
+        const items = Array.from(data.querySelectorAll("item")).slice(0, 3);
+        const container = document.getElementById("note-display-area");
+        
+        if(!container) return;
+        container.innerHTML = "";
+
+        items.forEach(el => {
+          const title = el.querySelector("title").textContent;
+          const link = el.querySelector("link").textContent;
+          const media = el.getElementsByTagName("media:thumbnail")[0];
+          const imgUrl = media ? media.getAttribute("url") : "https://assets.st-note.com/production/static/images/common/ogp.png";
+
+          const card = document.createElement("div");
+          // 横幅を32%に固定し、枠線を付けてカード形式にします
+          card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
+
+          card.innerHTML = `
+            <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
+              <div style="width: 100% !important; height: 140px !important; background: #eee !important; overflow: hidden !important;">
+                <img src="${imgUrl}" style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;">
+              </div>
+              <div style="padding: 10px !important;">
+                <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
+              </div>
+            </a>
+          `;
+          container.appendChild(card);
+        });
+      })
+      .catch(err => {
+        console.error("RSS読み込みエラー:", err);
+      });
+  })();
+</script>
 
     <!-- 4. ポートフォリオ（スライド） -->
     <section id="works">
