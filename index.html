@@ -401,47 +401,6 @@
       サイトに質問する      
     </button>
   </div>
-
-  <div id="note-blog" style="display: block !important; width: 100% !important; clear: both !important;">
-  <div id="note-inner" style="display: flex !important; gap: 10px !important; flex-wrap: nowrap !important; width: 100% !important;">
-    </div>
-</div>
-
-<script>
-  fetch("https://note-rss.arayanoen2018.workers.dev/")
-    .then(r => r.text())
-    .then(xml => {
-      const data = new DOMParser().parseFromString(xml, "text/xml");
-      const items = Array.from(data.querySelectorAll("item")).slice(0, 3);
-      const container = document.getElementById("note-inner");
-      container.innerHTML = "";
-
-      items.forEach(el => {
-        const title = el.querySelector("title").textContent;
-        const link = el.querySelector("link").textContent;
-        
-        // media:thumbnail を確実に取得。ダメならnote公式ロゴを強制。
-        let imgUrl = el.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url");
-        if (!imgUrl) imgUrl = "https://assets.st-note.com/production/static/images/common/ogp.png";
-
-        const div = document.createElement("div");
-        // 1枚の幅を「32%」にガチガチに固定します
-        div.setAttribute("style", "width: 32% !important; border: 1px solid #ccc !important; box-sizing: border-box !important; background: #fff !important; height: auto !important;");
-
-        div.innerHTML = `
-          <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important; width: 100% !important;">
-            <div style="width: 100% !important; height: 100px !important; overflow: hidden !important;">
-              <img src="${imgUrl}" style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;">
-            </div>
-            <p style="margin: 5px !important; font-size: 12px !important; line-height: 1.3 !important; height: 2.6em !important; overflow: hidden !important; word-break: break-all !important;">${title}</p>
-          </a>
-        `;
-        container.appendChild(div);
-      });
-    });
-</script>
-
-  
   
   <!-- 共通フッター（任意） -->
   <div id="site-footer"></div> 
