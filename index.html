@@ -365,54 +365,40 @@
   <!-- 共通フッター（任意） -->
   <div id="site-footer"></div>
 
-  <div id="note-blog" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: flex-start; max-width: 1000px; margin: 20px auto;"></div>
+  <div id="note-display" style="display: flex; gap: 10px; justify-content: space-between;"></div>
   <script>
     // note記事読み込み
-    fetch("https://note-rss.arayanoen2018.workers.dev/")
-    .then(response => response.text())
-    .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
-    .then(data => {
-      const items = data.querySelectorAll("item");
-      const container = document.getElementById("note-blog");
-      container.innerHTML = "";
+    const WORKER_URL = "https://note-rss.arayanoen2018.workers.dev/";
 
-      for (let i = 0; i < Math.min(items.length, 3); i++) {
-        const el = items[i];
-        const title = el.querySelector("title").textContent;
-        const link = el.querySelector("link").textContent;
+  fetch(WORKER_URL)
+    .then(res => res.text())
+    .then(xmlString => {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlString, "text/xml");
+      const items = Array.from(xml.querySelectorAll("item")).slice(0, 3);
+      const container = document.getElementById("note-display");
 
-        // 画像URLを徹底的に探す
-        let imgUrl = "";
-        const media = el.getElementsByTagName("media:thumbnail")[0];
-        const enclosure = el.querySelector("enclosure");
-        
-        if (media && media.getAttribute("url")) {
-          imgUrl = media.getAttribute("url");
-        } else if (enclosure && enclosure.getAttribute("url")) {
-          imgUrl = enclosure.getAttribute("url");
-        } else {
-          // どうしても取れない時の予備画像
-          imgUrl = "https://assets.st-note.com/production/static/images/common/ogp.png";
-        }
+      items.forEach(item => {
+        const title = item.querySelector("title").textContent;
+        const link = item.querySelector("link").textContent;
+        // 画像取得の確実な方法
+        const thumb = item.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url") 
+                    || "https://assets.st-note.com/production/static/images/common/ogp.png";
 
-        const article = document.createElement("article");
-        // 幅を「30%」で固定し、横並びを強制
-        article.style.cssText = "flex: 0 0 30%; min-width: 280px; border: 1px solid #eee; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);";
-
-        article.innerHTML = `
+        const card = document.createElement("div");
+        card.style.cssText = "width: 32%; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff; font-family: sans-serif;";
+        card.innerHTML = `
           <a href="${link}" target="_blank" style="text-decoration: none; color: #333;">
-            <div style="width: 100%; height: 160px; background: #f5f5f5;">
-              <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://assets.st-note.com/production/static/images/common/ogp.png'">
-            </div>
-            <div style="padding: 15px;">
-              <h3 style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.5; height: 3em; overflow: hidden;">${title}</h3>
-              <p style="margin: 0; font-size: 12px; color: #00bb98; font-weight: bold;">noteを開く ➔</p>
+            <img src="${thumb}" style="width: 100%; height: 120px; object-fit: cover;">
+            <div style="padding: 8px;">
+              <p style="margin: 0; font-size: 12px; font-weight: bold; line-height: 1.4; height: 2.8em; overflow: hidden;">${title}</p>
             </div>
           </a>
         `;
-        container.appendChild(article);
-      }
-    });  
+        container.appendChild(card);
+      });
+    })
+    .catch(err => console.error("Error:", err));
     
     // 共通フッター読込
     fetch('partials/footer.html').then(r=>r.text()).then(h=>{
