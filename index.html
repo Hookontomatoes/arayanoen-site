@@ -367,7 +367,7 @@
 
   <script>
     // note記事読み込み
-    fetch("https://note.com/araya_noen2018/rss")
+    fetch("https://note-rss.arayanoen2018.workers.dev/")
       .then(response => response.text())
       .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
       .then(data => {
