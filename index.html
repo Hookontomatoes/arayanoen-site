@@ -365,7 +365,7 @@
   <!-- 共通フッター（任意） -->
   <div id="site-footer"></div>
 
-  <div id="note-blog" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: flex-start; font-family: sans-serif;">
+  <div id="note-blog" style="display: flex; gap: 20px; flex-wrap: nowrap; width: 100%; max-width: 960px; margin: 20px auto; align-items: stretch;">
   </div>
   <script>
     // note記事読み込み
@@ -375,55 +375,44 @@
     .then(data => {
       const items = data.querySelectorAll("item");
       const container = document.getElementById("note-blog");
-      container.innerHTML = ""; // 初期化
+      container.innerHTML = "";
 
-      // 直近3件のみループ
       for (let i = 0; i < Math.min(items.length, 3); i++) {
         const el = items[i];
         const title = el.querySelector("title").textContent;
         const link = el.querySelector("link").textContent;
 
-        // 【重要】名前空間を考慮した画像取得
+        // 【解決策】RSSから画像URLを確実に抜く
         let thumbnail = "";
         const mediaThumb = el.getElementsByTagName("media:thumbnail")[0];
         if (mediaThumb) {
           thumbnail = mediaThumb.getAttribute("url");
         } else {
-          // 画像がない場合のダミー
-          thumbnail = "https://placehold.jp/24/cccccc/ffffff/300x200.png?text=No%20Image";
+          // 画像がない時の予備（適当なグレーの画像）
+          thumbnail = "https://placehold.jp/300x200.png?text=No%20Image";
         }
 
         const article = document.createElement("article");
-        
-        // CSSを使わず、style属性で直接カードのデザインを指定
-        article.style.cssText = `
-          width: 30%;
-          min-width: 250px;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          overflow: hidden;
-          background: #fff;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        `;
+        // カードの幅を3等分（隙間を考慮して約31%）に固定
+        article.style.cssText = "width: 31%; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff; display: flex; flex-direction: column;";
 
         article.innerHTML = `
-          <a href="${link}" target="_blank" rel="noopener" style="text-decoration: none; color: inherit; display: block;">
+          <a href="${link}" target="_blank" style="text-decoration: none; color: #333; display: flex; flex-direction: column; height: 100%;">
             <div style="width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #eee;">
-              <img src="${thumbnail}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+              <img src="${thumbnail}" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
-            <div style="padding: 12px;">
-              <h3 style="margin: 0 0 10px 0; font-size: 15px; line-height: 1.4; height: 3em; overflow: hidden;">${title}</h3>
-              <span style="font-size: 12px; color: #2cb696; font-weight: bold;">noteで読む ➔</span>
+            <div style="padding: 12px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <h3 style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.4; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;">${title}</h3>
+              <span style="font-size: 11px; color: #00bb98; font-weight: bold; border: 1px solid #00bb98; padding: 2px 6px; border-radius: 3px; align-self: flex-start;">noteで読む</span>
             </div>
           </a>
         `;
-
         container.appendChild(article);
       }
     })
     .catch(err => {
-      console.error("読み込みエラー:", err);
-      document.getElementById("note-blog").innerHTML = "記事を読み込めませんでした。";
+      console.error(err);
+      document.getElementById("note-blog").innerText = "読み込みに失敗しました。";
     });
     
     // 共通フッター読込
