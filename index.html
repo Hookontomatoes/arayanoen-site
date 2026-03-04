@@ -220,52 +220,36 @@
 
 <script>
   (function() {
-    const workerUrl = "https://note-rss.arayanoen2018.workers.dev/?t=" + Date.now();
-    
-    fetch(workerUrl)
+    fetch("https://note-rss.arayanoen2018.workers.dev/?t=" + Date.now())
       .then(r => r.text())
-      .then(xmlString => {
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlString, "text/xml");
-        const items = Array.from(xml.querySelectorAll("item")).slice(0, 3);
+      .then(xml => {
         const container = document.getElementById("note-display-area");
-        
+        if(!container) return;
         container.innerHTML = "";
+        
+        // 記事を3つ抽出
+        const items = xml.split('<item>').slice(1, 4);
 
-        items.forEach(el => {
-          const title = el.querySelector("title").textContent;
-          const link = el.querySelector("link").textContent;
+        items.forEach(item => {
+          const title = item.match(/<title>([\s\S]*?)<\/title>/)?.[1].replace(/<!\[CDATA\[|\]\]>/g, "") || "";
+          const link = item.match(/<link>([\s\S]*?)<\/link>/)?.[1] || "#";
           
-          // noteの画像URLを抜き出すための3段階チェック
-          let imgUrl = "";
-          
-          // 1. media:thumbnail タグを探す
-          const media = el.getElementsByTagName("media:thumbnail")[0];
-          if (media) imgUrl = media.getAttribute("url");
-          
-          // 2. なければ content:encoded 内の <img> タグを探す
-          if (!imgUrl) {
-            const content = el.getElementsByTagName("content:encoded")[0]?.textContent;
-            const match = content?.match(/src="(https:\/\/assets\.st-note\.com\/[^"]+)"/);
-            if (match) imgUrl = match[1];
-          }
-
-          // 3. それでもなければ公式ロゴ
-          if (!imgUrl) imgUrl = "https://assets.st-note.com/production/static/images/common/ogp.png";
+          // Workerで加工済みの画像URLを探す
+          const imgMatch = item.match(/https:\/\/wsrv\.nl\/\?url=[^\s"<>]+/);
+          const imgUrl = imgMatch ? imgMatch[0] : "https://assets.st-note.com/production/static/images/common/ogp.png";
 
           const card = document.createElement("div");
-          card.style.cssText = "flex: 0 0 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
+          card.style.cssText = "flex: 0 0 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important;";
 
           card.innerHTML = `
             <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
-              <div style="width: 100% !important; height: 140px !important; background: #eee !important; overflow: hidden !important;">
-                <img src="${imgUrl}" style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;">
+              <div style="width: 100% !important; height: 140px !important; background: #eee !important;">
+                <img src="${imgUrl}" style="width: 100% !important; height: 100% !important; object-fit: cover !important;">
               </div>
               <div style="padding: 10px !important;">
-                <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
+                <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden;">${title}</p>
               </div>
-            </a>
-          `;
+            </a>`;
           container.appendChild(card);
         });
       });
