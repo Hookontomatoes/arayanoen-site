@@ -207,15 +207,19 @@
 
     <!-- 3. ブログ（note） -->
     <section id="note-blog">
-      <div class="container">
-        <div class="band-title">
-          <h2>3. ブログ</h2>
-          <a class="more" href="https://note.com/araya_noen2018" target="_blank">noteを見る →</a>
-        </div>
-      <div id="note-display-area" style="display: flex !important; gap: 15px !important; width: 100% !important; margin: 20px 0 !important; flex-wrap: nowrap !important; justify-content: space-between !important;">
-      </div>
-      </div>
-    </section>
+  <div class="container">
+    <div class="band-title">
+      <h2>3. ブログ</h2>
+      <a class="more" href="https://note.com/araya_noen2018" target="_blank">noteを見る →</a>
+    </div>
+    <div class="carousel" data-carousel="note">
+      <button class="navbtn navprev" aria-label="前へ">‹</button>      
+      <div class="track" id="note-display-area"></div>
+      <button class="navbtn navnext" aria-label="次へ">›</button>
+      <div class="dots" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
 
     <script>
       (function() {
