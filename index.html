@@ -215,9 +215,7 @@
 
     <div class="carousel" data-carousel="note">
       <button class="navbtn navprev" aria-label="前へ">‹</button>
-      
-      <div class="track" id="note-display-area" style="display: flex !important;"></div>
-
+      <div class="track" id="note-display-area"></div>
       <button class="navbtn navnext" aria-label="次へ">›</button>
       <div class="dots" aria-hidden="true"></div>
     </div>
@@ -241,34 +239,30 @@
             const imgMatch = item.match(/https:\/\/wsrv\.nl\/\?url=[^\s"<>]+/);
             const imgUrl = imgMatch ? imgMatch[0] : "https://assets.st-note.com/production/static/images/common/ogp.png";
 
-            // ポートフォリオと同じarticle構造を生成
             const card = document.createElement("article");
             card.className = "card";
-            // 横幅をポートフォリオ(300px)に合わせる
-            card.style.cssText = "flex: 0 0 300px !important; margin: 10px !important; text-align: center !important;";
+            // ポートフォリオと全く同じサイズ・スタイルを直接指定
+            card.style.cssText = "display: inline-block; vertical-align: top; width: 300px; margin: 10px; text-align: center;";
 
             card.innerHTML = `
-              <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
-                <div class="card-thumb" style="width: 300px !important; height: 200px !important; background: #eee !important; overflow: hidden !important;">
-                  <img src="${imgUrl}" style="width: 100% !important; height: 100% !important; object-fit: cover !important;">
+              <a href="${link}" target="_blank" style="text-decoration: none; color: inherit; display: block;">
+                <div class="card-thumb" style="width: 300px; height: 200px; overflow: hidden; background: #eee;">
+                  <img src="${imgUrl}" alt="${title}" width="300" height="200" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
-                <div style="padding: 10px !important;">
-                  <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden;">${title}</p>
+                <div class="body">
+                  <h3 style="font-size: 16px; margin: 10px 0;">${title}</h3>
                 </div>
               </a>`;
             container.appendChild(card);
           });
 
-          // 【重要】記事読み込み完了後にスライド機能を起動させる
-          // 既存のcarousel制御スクリプトが window.initCarousel 等の関数を持っている場合に実行
-          if (typeof initCarousel === "function") {
-            initCarousel();
+          // --- 【解決のポイント】 ---
+          // ページ下部で定義されている initCarousel 関数を呼び出して、
+          // このブログ部分(data-carousel="note")をスライドとして動くようにセットします。
+          const noteCarousel = document.querySelector('[data-carousel="note"]');
+          if (noteCarousel && typeof initCarousel === "function") {
+            initCarousel(noteCarousel);
           }
-          
-          // ブラウザにリサイズイベントを通知して、スライドの幅計算をやり直させる（強制発火）
-          setTimeout(() => {
-            window.dispatchEvent(new Event('resize'));
-          }, 100);
         })
         .catch(err => console.error("noteの読み込みに失敗しました:", err));
     })();
