@@ -264,7 +264,7 @@
       <a class="more" href="https://fori.io/HookonTomatoes" target="_blank">すべて見る →</a>
     </div>
     <div id="foriio-display-area" style="display: flex !important; gap: 15px !important; width: 100% !important; margin: 20px 0 !important; flex-wrap: nowrap !important; justify-content: flex-start !important;">
-    </div>
+      </div>
   </div>
 </section>
 
@@ -283,26 +283,23 @@
 
         works.forEach(work => {
           const title = work.title;
-          const link = `https://www.foriio.com/works/${work.id}`;
+          const link = `https://www.fori.io/works/${work.id}`;
           
-          // 【超重要】Foriioの特殊な画像URLを完全に整形します
-          let rawImg = work.thumbnail_url || "";
-          if (rawImg.startsWith('//')) { rawImg = 'https:' + rawImg; }
-          
-          // URL末尾の不要なパラメータを除去し、画像専用プロキシを通します
-          const cleanImg = rawImg.split('?')[0]; 
-          // 画像を確実に読み込むための中継設定を変更しました
-          const imgUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanImg)}&w=400&fit=cover&noshp=1`;
+          // Foriioが持っている画像URLをそのまま使います（中継サーバーを使いません）
+          let imgUrl = work.thumbnail_url || "";
+          if (imgUrl.startsWith('//')) {
+              imgUrl = 'https:' + imgUrl;
+          }
 
           const card = document.createElement("div");
           card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
 
           card.innerHTML = `
             <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
-              <div style="width: 100% !important; height: 140px !important; background: #eee !important; overflow: hidden !important; position: relative !important;">
+              <div style="width: 100% !important; height: 140px !important; background: #eee !important; position: relative !important;">
                 <img src="${imgUrl}" 
-                     style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;" 
-                     onerror="this.src='https://assets.foriio.com/assets/foriio_ogp.png'">
+                     style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important; border: none !important;" 
+                     loading="lazy">
               </div>
               <div style="padding: 10px !important;">
                 <p style="margin: 0 !important; font-size: 13px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
