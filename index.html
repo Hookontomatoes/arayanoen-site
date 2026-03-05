@@ -237,7 +237,7 @@
                   const imgMatch = item.match(/https:\/\/wsrv\.nl\/\?url=[^\s"<>]+/);
                   const imgUrl = imgMatch ? imgMatch[0] : "https://assets.st-note.com/production/static/images/common/ogp.png";  
                   const card = document.createElement("div");
-                  card.style.cssText = "flex: 0 0 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important;";
+                  card.style.cssText = "flex: 0 0 280px !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; margin-right: 15px !important;";
                   card.innerHTML = `
                   <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
                   <div style="width: 100% !important; height: 140px !important; background: #eee !important;">
