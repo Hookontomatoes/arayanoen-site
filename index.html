@@ -271,6 +271,7 @@
 
 <script>
   (function() {
+    // ForiioのAPIから最新3件の作品URLだけを取得
     const foriioUrl = "https://api.foriio.com/api/v1/users/HookonTomatoes/works";
     
     fetch(foriioUrl)
@@ -283,33 +284,23 @@
         const works = data.works.slice(0, 3);
 
         works.forEach(work => {
-          const title = work.title;
-          const link = `https://www.foriio.com/works/${work.id}`;
+          const workLink = `https://www.foriio.com/works/${work.id}`;
           
-          // 画像URLの取得（余計なパラメータを排除し、中継を通す）
-          let rawUrl = work.thumbnail_url || "";
-          // URLを一旦リセットして中継サーバーへ
-          let imgUrl = "https://wsrv.nl/?url=" + encodeURIComponent(rawUrl.split('?')[0]) + "&noshp";
+          // 作品1つごとにForiio専用の埋め込み枠を作成
+          const cardWrapper = document.createElement("div");
+          cardWrapper.style.cssText = "flex: 0 0 32% !important; min-height: 200px !important; border: 1px solid #ddd !important; border-radius: 8px !important; overflow: hidden !important; background: #fff !important;";
 
-          const card = document.createElement("div");
-          card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
-
-          card.innerHTML = `
-            <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
-              <div style="width: 100% !important; height: 140px !important; background: #eee !important; overflow: hidden !important;">
-                <img src="${imgUrl}" 
-                     style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;" 
-                     onerror="this.onerror=null; this.src='https://assets.foriio.com/assets/foriio_ogp.png';">
-              </div>
-              <div style="padding: 10px !important;">
-                <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
-              </div>
-            </a>
+          // iframely（Foriio公式も採用している仕組み）を使い、URLから直接カードを生成
+          cardWrapper.innerHTML = `
+            <iframe src="https://iframely.foriio.com/api/iframe?url=${encodeURIComponent(workLink)}" 
+                    style="width: 100% !important; height: 100% !important; border: 0 !important;" 
+                    allowfullscreen>
+            </iframe>
           `;
-          container.appendChild(card);
+          container.appendChild(cardWrapper);
         });
       })
-      .catch(err => console.error("Foriioエラー:", err));
+      .catch(err => console.error("Foriio Error:", err));
   })();
 </script>
     
