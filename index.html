@@ -258,65 +258,21 @@
 
     <!-- 4. ポートフォリオ（スライド） -->
     <section id="works">
-      <div class="container">
-        <div class="band-title">
-          <h2>4. ポートフォリオ</h2>
-          <a class="more" href="https://fori.io/HookonTomatoes" target="_blank">すべて見る →</a>
-        </div>
+  <div class="container">
+    <div class="band-title">
+      <h2>4. ポートフォリオ</h2>
+      <a class="more" href="https://fori.io/HookonTomatoes" target="_blank">すべて見る →</a>
+    </div>
 
-        <div id="foriio-display-area" style="display: flex !important; gap: 15px !important; width: 100% !important; margin: 20px 0 !important; flex-wrap: nowrap !important; justify-content: space-between !important;">
-      </div>
+    <div style="width: 100%; overflow: hidden;">
+      <iframe src="https://www.foriio.com/HookonTomatoes/embed" 
+              style="width: 100%; height: 500px; border: none; overflow: hidden;" 
+              scrolling="no" 
+              allowtransparency="true">
+      </iframe>
+    </div>
   </div>
 </section>
-
-<script>
-  (function() {
-    const foriioUrl = "https://api.foriio.com/api/v1/users/HookonTomatoes/works";
-    
-    fetch(foriioUrl)
-      .then(r => r.json())
-      .then(data => {
-        const container = document.getElementById("foriio-display-area");
-        if(!container) return;
-        container.innerHTML = "";
-
-        const works = data.works.slice(0, 3);
-
-        works.forEach(work => {
-          const title = work.title;
-          const link = `https://www.foriio.com/works/${work.id}`;
-          
-          // 【最重要】Foriioの画像URLを完全な形に補完する処理
-          let rawImg = work.thumbnail_url || "";
-          if (rawImg && !rawImg.startsWith('http')) {
-              rawImg = 'https:' + rawImg; // 頭にhttps:がない場合は補完
-          }
-          
-          // noteで成功した中継プロキシを適用（クエリ削除版）
-          const cleanImg = rawImg.split('?')[0]; 
-          const imgUrl = `https://wsrv.nl/?url=${encodeURIComponent(cleanImg)}&w=400&fit=cover`;
-
-          const card = document.createElement("div");
-          card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
-
-          card.innerHTML = `
-            <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
-              <div style="width: 100% !important; height: 140px !important; background: #eee !important; overflow: hidden !important;">
-                <img src="${imgUrl}" 
-                     style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;" 
-                     onerror="this.src='https://assets.foriio.com/assets/foriio_ogp.png'">
-              </div>
-              <div style="padding: 10px !important;">
-                <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
-              </div>
-            </a>
-          `;
-          container.appendChild(card);
-        });
-      })
-      .catch(err => console.error("Foriio Error:", err));
-  })();
-</script>
     
   <section id="kouza-section">
   <div class="container">
