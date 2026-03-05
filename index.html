@@ -271,7 +271,6 @@
 
 <script>
   (function() {
-    // ForiioのAPIから最新3件の作品URLだけを取得
     const foriioUrl = "https://api.foriio.com/api/v1/users/HookonTomatoes/works";
     
     fetch(foriioUrl)
@@ -281,20 +280,21 @@
         if(!container) return;
         container.innerHTML = "";
 
+        // 最新の3件を取得
         const works = data.works.slice(0, 3);
 
         works.forEach(work => {
           const workLink = `https://www.foriio.com/works/${work.id}`;
           
-          // 作品1つごとにForiio専用の埋め込み枠を作成
           const cardWrapper = document.createElement("div");
-          cardWrapper.style.cssText = "flex: 0 0 32% !important; min-height: 200px !important; border: 1px solid #ddd !important; border-radius: 8px !important; overflow: hidden !important; background: #fff !important;";
+          // 3枚並びを維持するためのスタイル
+          cardWrapper.style.cssText = "flex: 0 0 32% !important; height: 220px !important; border: 1px solid #ddd !important; border-radius: 8px !important; overflow: hidden !important; background: #fff !important;";
 
-          // iframely（Foriio公式も採用している仕組み）を使い、URLから直接カードを生成
+          // Foriio公式の埋め込み用URLを使用
           cardWrapper.innerHTML = `
             <iframe src="https://iframely.foriio.com/api/iframe?url=${encodeURIComponent(workLink)}" 
                     style="width: 100% !important; height: 100% !important; border: 0 !important;" 
-                    allowfullscreen>
+                    loading="lazy">
             </iframe>
           `;
           container.appendChild(cardWrapper);
