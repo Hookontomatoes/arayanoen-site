@@ -286,11 +286,10 @@
           const title = work.title;
           const link = `https://www.foriio.com/works/${work.id}`;
           
-          // Foriioの画像URL（Cloudinary等）から余計なパラメータを排除して中継
-          let rawImgUrl = work.thumbnail_url || "";
-          // URLが ? で始まっている場合の修正とエンコードの徹底
-          const cleanImgUrl = rawImgUrl.split('?')[0]; 
-          const imgUrl = `https://wsrv.nl/?url=${encodeURIComponent(cleanImgUrl)}&w=400&h=300&fit=cover`;
+          // 画像URLの取得（余計なパラメータを排除し、中継を通す）
+          let rawUrl = work.thumbnail_url || "";
+          // URLを一旦リセットして中継サーバーへ
+          let imgUrl = "https://wsrv.nl/?url=" + encodeURIComponent(rawUrl.split('?')[0]) + "&noshp";
 
           const card = document.createElement("div");
           card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
@@ -298,7 +297,9 @@
           card.innerHTML = `
             <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
               <div style="width: 100% !important; height: 140px !important; background: #eee !important; overflow: hidden !important;">
-                <img src="${imgUrl}" style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;" onerror="this.src='https://assets.foriio.com/assets/foriio_ogp.png'">
+                <img src="${imgUrl}" 
+                     style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;" 
+                     onerror="this.onerror=null; this.src='https://assets.foriio.com/assets/foriio_ogp.png';">
               </div>
               <div style="padding: 10px !important;">
                 <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
