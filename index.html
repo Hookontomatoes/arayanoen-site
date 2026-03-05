@@ -286,9 +286,11 @@
           const title = work.title;
           const link = `https://www.foriio.com/works/${work.id}`;
           
-          // 【修正】画像URLをプロキシ経由に変換して、ブロックを回避します
-          const originalImgUrl = work.thumbnail_url;
-          const imgUrl = `https://wsrv.nl/?url=${encodeURIComponent(originalImgUrl)}`;
+          // Foriioの画像URL（Cloudinary等）から余計なパラメータを排除して中継
+          let rawImgUrl = work.thumbnail_url || "";
+          // URLが ? で始まっている場合の修正とエンコードの徹底
+          const cleanImgUrl = rawImgUrl.split('?')[0]; 
+          const imgUrl = `https://wsrv.nl/?url=${encodeURIComponent(cleanImgUrl)}&w=400&h=300&fit=cover`;
 
           const card = document.createElement("div");
           card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
