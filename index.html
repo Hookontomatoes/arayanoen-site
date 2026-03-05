@@ -264,14 +264,13 @@
       <a class="more" href="https://fori.io/HookonTomatoes" target="_blank">すべて見る →</a>
     </div>
 
-    <div id="foriio-display-area" style="display: flex; gap: 15px; width: 100%; margin: 20px 0; flex-wrap: nowrap; justify-content: flex-start;">
+    <div id="foriio-display-area" style="display: flex; gap: 15px; width: 100%; margin: 20px 0; flex-wrap: nowrap;">
     </div>
   </div>
 </section>
 
 <script>
   (function() {
-    // APIから作品データを直接取得します
     const foriioUrl = "https://api.foriio.com/api/v1/users/HookonTomatoes/works";
     
     fetch(foriioUrl)
@@ -281,27 +280,33 @@
         if(!container) return;
         container.innerHTML = "";
 
-        // 上位3つの作品だけを抽出
         const works = data.works.slice(0, 3);
 
         works.forEach(work => {
           const title = work.title;
           const link = `https://www.foriio.com/works/${work.id}`;
           
-          // 画像のURLを「https:」で補完し、確実に表示される中継サーバーを通します
+          // --- ここが画像を表示させるための核心です ---
           let rawImg = work.thumbnail_url || "";
-          if (rawImg.startsWith('//')) { rawImg = 'https:' + rawImg; }
+          
+          // 1. URLが「//」で始まっている場合に「https:」を付け足す
+          if (rawImg.startsWith('//')) {
+              rawImg = 'https:' + rawImg;
+          }
+          
+          // 2. 余計なパラメータを消し、確実に画像を取得できる中継サーバーを通す
           const cleanImg = rawImg.split('?')[0]; 
           const imgUrl = `https://wsrv.nl/?url=${encodeURIComponent(cleanImg)}&w=400&fit=cover&noshp`;
 
           const card = document.createElement("div");
-          // PCで3枚並ぶよう、幅を約32%に固定します
           card.style.cssText = "flex: 0 0 32%; width: 32%; border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-sizing: border-box;";
 
           card.innerHTML = `
             <a href="${link}" target="_blank" style="text-decoration: none; color: #333; display: block;">
-              <div style="width: 100%; height: 140px; background: #eee;">
-                <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://assets.foriio.com/assets/foriio_ogp.png'">
+              <div style="width: 100%; height: 140px; background: #eee; overflow: hidden;">
+                <img src="${imgUrl}" 
+                     style="width: 100%; height: 100%; object-fit: cover; display: block;" 
+                     onerror="this.src='https://assets.foriio.com/assets/foriio_ogp.png'">
               </div>
               <div style="padding: 10px;">
                 <p style="margin: 0; font-size: 14px; font-weight: bold; line-height: 1.4; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${title}</p>
@@ -310,13 +315,10 @@
           `;
           container.appendChild(card);
         });
-      })
-      .catch(err => {
-        console.error("データの取得に失敗しました:", err);
       });
   })();
 </script>
-    
+    <!-- 5. 講座 -->
   <section id="kouza-section">
   <div class="container">
     <div class="band-title">
