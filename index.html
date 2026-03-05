@@ -263,8 +263,7 @@
       <h2>4. ポートフォリオ</h2>
       <a class="more" href="https://fori.io/HookonTomatoes" target="_blank">すべて見る →</a>
     </div>
-
-    <div id="foriio-display-area" style="display: flex; gap: 15px; width: 100%; margin: 20px 0; flex-wrap: nowrap;">
+    <div id="foriio-display-area" style="display: flex !important; gap: 15px !important; width: 100% !important; margin: 20px 0 !important; flex-wrap: nowrap !important; justify-content: flex-start !important;">
     </div>
   </div>
 </section>
@@ -286,30 +285,27 @@
           const title = work.title;
           const link = `https://www.foriio.com/works/${work.id}`;
           
-          // --- ここが画像を表示させるための核心です ---
+          // 【超重要】Foriioの特殊な画像URLを完全に整形します
           let rawImg = work.thumbnail_url || "";
+          if (rawImg.startsWith('//')) { rawImg = 'https:' + rawImg; }
           
-          // 1. URLが「//」で始まっている場合に「https:」を付け足す
-          if (rawImg.startsWith('//')) {
-              rawImg = 'https:' + rawImg;
-          }
-          
-          // 2. 余計なパラメータを消し、確実に画像を取得できる中継サーバーを通す
+          // URL末尾の不要なパラメータを除去し、画像専用プロキシを通します
           const cleanImg = rawImg.split('?')[0]; 
-          const imgUrl = `https://wsrv.nl/?url=${encodeURIComponent(cleanImg)}&w=400&fit=cover&noshp`;
+          // 画像を確実に読み込むための中継設定を変更しました
+          const imgUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanImg)}&w=400&fit=cover&noshp=1`;
 
           const card = document.createElement("div");
-          card.style.cssText = "flex: 0 0 32%; width: 32%; border: 1px solid #ddd; border-radius: 8px; background: #fff; overflow: hidden; box-sizing: border-box;";
+          card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
 
           card.innerHTML = `
-            <a href="${link}" target="_blank" style="text-decoration: none; color: #333; display: block;">
-              <div style="width: 100%; height: 140px; background: #eee; overflow: hidden;">
+            <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
+              <div style="width: 100% !important; height: 140px !important; background: #eee !important; overflow: hidden !important; position: relative !important;">
                 <img src="${imgUrl}" 
-                     style="width: 100%; height: 100%; object-fit: cover; display: block;" 
+                     style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;" 
                      onerror="this.src='https://assets.foriio.com/assets/foriio_ogp.png'">
               </div>
-              <div style="padding: 10px;">
-                <p style="margin: 0; font-size: 14px; font-weight: bold; line-height: 1.4; height: 2.8em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${title}</p>
+              <div style="padding: 10px !important;">
+                <p style="margin: 0 !important; font-size: 13px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
               </div>
             </a>
           `;
@@ -318,6 +314,7 @@
       });
   })();
 </script>
+    
     <!-- 5. 講座 -->
   <section id="kouza-section">
   <div class="container">
