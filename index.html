@@ -435,6 +435,7 @@
     }).catch(()=>{});
 
     // スライダー初期化（タッチ＆ボタン＆ドット）
+    // スライダー初期化（ループ対応版）
     function initCarousel(root){
       const track = root.querySelector('.track');
       const prev  = root.querySelector('.navprev');
@@ -454,15 +455,26 @@
         d.addEventListener('click', ()=>goTo(i));
         dots.appendChild(d);
       });
+
       const setDots = ()=>{
         dots.querySelectorAll('.dot').forEach((e,i)=>e.classList.toggle('active', i===index));
       };
 
       const goTo = (i)=>{
-        index = Math.max(0, Math.min(cards.length-1, i));
+        // --- ここでループの判定をします ---
+        if (i < 0) {
+          index = cards.length - 1; // 最初の前は「最後」へ
+        } else if (i >= cards.length) {
+          index = 0; // 最後の次は「最初」へ
+        } else {
+          index = i;
+        }
+        // ------------------------------
+        
         track.scrollTo({left: index * getCardWidth(), behavior:'smooth'});
         setDots();
       };
+
       prev.addEventListener('click', ()=>goTo(index-1));
       next.addEventListener('click', ()=>goTo(index+1));
 
@@ -478,8 +490,9 @@
       }, {passive:true});
       track.addEventListener('touchend', ()=>{
         const cw = getCardWidth();
-        index = Math.round(track.scrollLeft / cw);
-        goTo(index);
+        const newIndex = Math.round(track.scrollLeft / cw);
+        // スワイプ時もループ判定を入れるために goTo を使う
+        goTo(newIndex);
         startX=null;
       });
 
