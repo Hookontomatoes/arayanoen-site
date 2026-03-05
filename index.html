@@ -180,12 +180,12 @@
             </article>
             <article class="card">
               <div class="card-thumb">
-              <img loading="lazy" src="assets/images/kikuimo.jpg" alt="きくいも">
+              <img loading="lazy" src="assets/images/works/harvestsuite-dashboard.png" alt="HarvestSuiteダッシュボード">
               </div>
               <div class="body">
-                <h3>きくいも</h3>
-                <p>栄養価が高い。フライや漬物に。</p>
-                <a class="go" href="products/">2025年12月販売開始予定</a>
+                <h3>HarvestSuite™</h3>
+                <p>収穫・在庫・出荷まで一元管理のWindowsアプリ。</p>
+                <a class="go" href="https://arayanoen-sizen.stores.jp/">STORESへ</a>
               </div>
             </article>
           </div>
@@ -261,32 +261,64 @@
       <div class="container">
         <div class="band-title">
           <h2>4. ポートフォリオ</h2>
-          <a class="more" href="works/">すべて見る →</a>
+          <a class="more" href="https://www.foriio.com/araya-noen2018" target="_blank">すべて見る →</a>
         </div>
 
-        <div class="carousel" data-carousel="works">
-          <button class="navbtn navprev" aria-label="前へ">‹</button>
-          <div class="track">
-            <article class="card">
-              <div class="card-thumb">
-              <img loading="lazy" src="assets/images/works/harvestsuite-dashboard.png" alt="HarvestSuiteダッシュボード">
+        <div id="foriio-display-area" style="display: flex !important; gap: 15px !important; width: 100% !important; margin: 20px 0 !important; flex-wrap: nowrap !important; justify-content: space-between !important;">
+      </div>
+  </div>
+</section>
+
+<script>
+  (function() {
+    // Foriioのユーザー名（araya-noen2018）を指定してデータを取得
+    const foriioUrl = "https://api.foriio.com/api/v1/users/araya-noen2018/works";
+    
+    fetch(foriioUrl)
+      .then(r => r.json())
+      .then(data => {
+        const container = document.getElementById("foriio-display-area");
+        if(!container) return;
+        container.innerHTML = "";
+
+        // 作品データから最新の3件を取得
+        const works = data.works.slice(0, 3);
+
+        works.forEach(work => {
+          const title = work.title;
+          // 作品詳細へのリンク
+          const link = `https://www.foriio.com/works/${work.id}`;
+          // サムネイル画像（大きなサイズを指定）
+          const imgUrl = work.thumbnail_url;
+
+          const card = document.createElement("div");
+          card.style.cssText = "flex: 0 0 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
+
+          card.innerHTML = `
+            <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
+              <div style="width: 100% !important; height: 140px !important; background: #eee !important; overflow: hidden !important;">
+                <img src="${imgUrl}" style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;">
               </div>
-              <div class="body">
-                <h3>HarvestSuite™</h3>
-                <p>収穫・在庫・出荷まで一元管理のWindowsアプリ。</p>
-                <a class="go" href="https://arayanoen-sizen.stores.jp/">STORESへ</a>
+              <div style="padding: 10px !important;">
+                <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
               </div>
-            </article>
-            <article class="card">
-              <div class="card-thumb">
-              <img loading="lazy" src="assets/images/works/rogonu.png" alt="野菜販売LP">
-              </div>
-              <div class="body">
-                <h3>野菜販売LP/ロゴ/バナー/LINEリッチメニュー</h3>
-                <p>高速・読みやすい静的LP。Inkscape制作。印刷/WEBで視認性最適化。STORES/LINE連携。</p>
-                <a class="go" href="https://fori.io/HookonTomatoes">ポートフォリオサイト(forio)</a>
-              </div>
-            </article>
+            </a>
+          `;
+          container.appendChild(card);
+        });
+
+        // 3件に満たない場合に備えて、空のカードが出ないように調整済みです
+      })
+      .catch(err => console.error("Foriio取得エラー:", err));
+  })();
+</script>
+    
+  <section id="kouza-section">
+  <div class="container">
+    <div class="band-title">
+      <h2>5. 講座情報</h2>
+      <a class="more" href="products/">すべて見る →</a>
+    </div>
             <article class="card">
               <div class="card-thumb">
               <img loading="lazy" src="assets/images/works/school.png" alt="スクール">
