@@ -264,7 +264,7 @@
       <a class="more" href="https://fori.io/HookonTomatoes" target="_blank">すべて見る →</a>
     </div>
     <div id="foriio-display-area" style="display: flex !important; gap: 15px !important; width: 100% !important; margin: 20px 0 !important; flex-wrap: nowrap !important; justify-content: flex-start !important;">
-      </div>
+    </div>
   </div>
 </section>
 
@@ -279,36 +279,42 @@
         if(!container) return;
         container.innerHTML = "";
 
+        // 直近3件を取得
         const works = data.works.slice(0, 3);
 
         works.forEach(work => {
           const title = work.title;
-          const link = `https://www.fori.io/works/${work.id}`;
+          const link = `https://www.foriio.com/works/${work.id}`;
           
-          // Foriioが持っている画像URLをそのまま使います（中継サーバーを使いません）
-          let imgUrl = work.thumbnail_url || "";
-          if (imgUrl.startsWith('//')) {
-              imgUrl = 'https:' + imgUrl;
-          }
+          // 1. //をhttps:に補完
+          let rawImg = work.thumbnail_url || "";
+          if (rawImg.startsWith('//')) { rawImg = 'https:' + rawImg; }
+          
+          // 2. パラメータを削って純粋な画像URLにする
+          const cleanImg = rawImg.split('?')[0]; 
+          
+          // 3. 画像の読み込みに失敗しにくい別の中継プロキシ（Cloudflare経由）を使用
+          const imgUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanImg)}&w=500&h=350&fit=cover&noshp=1&output=jpg`;
 
           const card = document.createElement("div");
-          card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important;";
+          card.style.cssText = "flex: 0 0 32% !important; width: 32% !important; border: 1px solid #ddd !important; border-radius: 8px !important; background: #fff !important; overflow: hidden !important; box-sizing: border-box !important; transition: transform 0.2s !important;";
 
           card.innerHTML = `
             <a href="${link}" target="_blank" style="text-decoration: none !important; color: #333 !important; display: block !important;">
-              <div style="width: 100% !important; height: 140px !important; background: #eee !important; position: relative !important;">
+              <div style="width: 100% !important; height: 160px !important; background: #f0f0f0 !important; overflow: hidden !important;">
                 <img src="${imgUrl}" 
-                     style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important; border: none !important;" 
-                     loading="lazy">
+                     style="width: 100% !important; height: 100% !important; object-fit: cover !important; display: block !important;" 
+                     onerror="this.onerror=null; this.src='https://assets.foriio.com/assets/foriio_ogp.png';">
               </div>
-              <div style="padding: 10px !important;">
-                <p style="margin: 0 !important; font-size: 13px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
+              <div style="padding: 12px !important;">
+                <p style="margin: 0 !important; font-size: 14px !important; font-weight: bold !important; line-height: 1.4 !important; height: 2.8em !important; overflow: hidden !important; display: -webkit-box !important; -webkit-line-clamp: 2 !important; -webkit-box-orient: vertical !important;">${title}</p>
               </div>
             </a>
           `;
           container.appendChild(card);
         });
-      });
+      })
+      .catch(e => console.error("Error:", e));
   })();
 </script>
     
