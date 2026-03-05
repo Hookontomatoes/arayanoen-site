@@ -314,8 +314,8 @@
   <section id="kouza-section">
   <div class="container">
     <div class="band-title">
-      <h2>5. 講座情報</h2>
-      <span class="more">カードをタップして詳細を見る</span>
+      <h2>5. 講座・スクール</h2>
+      <span class="more">学校・団体さま向けの出張授業も承ります</span>
     </div>
     
     <div style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
@@ -323,14 +323,15 @@
                style="cursor: pointer; width: 300px; border: 1px solid #ddd; border-radius: 12px; overflow: hidden; background: #fff; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
                onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.15)';"
                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';"
-               onclick="openKouza('programming')">
+               onclick="openKouza('agriculture')">
         <div class="card-thumb" style="height: 180px; overflow: hidden; position: relative;">
-          <img src="assets/images/works/school.png" alt="スクール" style="width: 100%; height: 100%; object-fit: cover;">
-          <div style="position: absolute; bottom: 0; background: rgba(0,0,0,0.6); color: #fff; width: 100%; padding: 5px; font-size: 12px; text-align: center;">詳しく見る</div>
+          <img src="assets/images/farm.jpg" alt="農業体験" style="width: 100%; height: 100%; object-fit: cover;">
+          <div style="position: absolute; top: 10px; left: 10px; background: #28a745; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">学校・団体向け</div>
+          <div style="position: absolute; bottom: 0; background: rgba(0,0,0,0.6); color: #fff; width: 100%; padding: 5px; font-size: 12px; text-align: center;">詳細を見る</div>
         </div>
         <div class="body" style="padding: 15px; text-align: center;">
-          <h3 style="font-size: 1.1em; margin: 0 0 8px; color: #333;">プログラミング・Webデザイン</h3>
-          <p style="font-size: 0.9em; color: #666; line-height: 1.5; height: 3em; overflow: hidden;">現場で使える技術を、農家の視点からお伝えします。</p>
+          <h3 style="font-size: 1.1em; margin: 0 0 8px; color: #333;">小学生向け 農業体験講座</h3>
+          <p style="font-size: 0.9em; color: #666; line-height: 1.5; height: 3em; overflow: hidden;">五感を使って学ぶ、いのちのつながり。総合学習や食育に。</p>
         </div>
       </article>
 
@@ -338,58 +339,57 @@
                style="cursor: pointer; width: 300px; border: 1px solid #ddd; border-radius: 12px; overflow: hidden; background: #fff; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
                onmouseover="this.style.transform='translateY(-10px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.15)';"
                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';"
-               onclick="openKouza('agriculture')">
+               onclick="openKouza('programming')">
         <div class="card-thumb" style="height: 180px; overflow: hidden; position: relative;">
-          <img src="assets/images/farm.jpg" alt="農業体験" style="width: 100%; height: 100%; object-fit: cover;">
-          <div style="position: absolute; bottom: 0; background: rgba(0,0,0,0.6); color: #fff; width: 100%; padding: 5px; font-size: 12px; text-align: center;">詳しく見る</div>
+          <img src="assets/images/works/school.png" alt="プログラミング" style="width: 100%; height: 100%; object-fit: cover;">
+          <div style="position: absolute; top: 10px; left: 10px; background: #007bff; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">オンライン・出張</div>
+          <div style="position: absolute; bottom: 0; background: rgba(0,0,0,0.6); color: #fff; width: 100%; padding: 5px; font-size: 12px; text-align: center;">詳細を見る</div>
         </div>
         <div class="body" style="padding: 15px; text-align: center;">
-          <h3 style="font-size: 1.1em; margin: 0 0 8px; color: #333;">自然農法栽培ワークショップ</h3>
-          <p style="font-size: 0.9em; color: #666; line-height: 1.5; height: 3em; overflow: hidden;">土に触れ、命を育む楽しさを体験学習で学びます。</p>
+          <h3 style="font-size: 1.1em; margin: 0 0 8px; color: #333;">小学生向け プログラミング</h3>
+          <p style="font-size: 0.9em; color: #666; line-height: 1.5; height: 3em; overflow: hidden;">「考える・試す・動く」をゲーム作りで楽しく体験。</p>
         </div>
       </article>
     </div>
   </div>
 
   <div id="kouzaModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); z-index: 10000; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
-    <div style="background: #fff; width: 90%; max-width: 550px; padding: 40px 30px; border-radius: 16px; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
-      <button onclick="closeKouza()" style="position: absolute; top: 15px; right: 15px; background: #eee; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
+    <div style="background: #fff; width: 90%; max-width: 550px; padding: 40px 30px; border-radius: 16px; position: relative; max-height: 85vh; overflow-y: auto;">
+      <button onclick="closeKouza()" style="position: absolute; top: 15px; right: 15px; background: #eee; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 20px; cursor: pointer;">&times;</button>
       <div id="modalContent"></div>
     </div>
   </div>
 
   <script>
-    // 講座のデータ
     const kouzaData = {
-      programming: {
-        title: "プログラミング・Webデザイン講座",
-        description: "農作業の現場課題を解決するために培った、実践的なITスキルを凝縮してお伝えします。難しい用語を使わず、実際に「使える」ものを作ることを重視します。",
-        details: `
-          <h4 style="border-left: 4px solid #28a745; padding-left: 10px; margin: 20px 0 10px;">こんな人におすすめ</h4>
-          <ul style="padding-left: 20px; line-height: 1.8;">
-            <li>自分の活動を自分で発信したい農家の方</li>
-            <li>手書き帳票を卒業して業務効率化したい方</li>
-            <li>地域貢献とWebデザインを掛け合わせたい方</li>
-          </ul>
-          <h4 style="border-left: 4px solid #28a745; padding-left: 10px; margin: 20px 0 10px;">学べる内容の例</h4>
-          <p style="line-height: 1.6;">HTML/CSSによるHP改修、スマホ対応、Googleフォーム活用、業務自動化の考え方など。</p>
-        `,
-        link: "#contact"
-      },
       agriculture: {
-        title: "自然農法栽培ワークショップ",
-        description: "青森の厳しい自然の中で実践している、農薬・化学肥料に頼らない「土づくり」の極意を公開。家庭菜園から本格的な栽培まで、幅広く対応します。",
+        title: "小学生向け 農業体験講座",
+        label: "学校・団体向け",
+        description: "実際の畑で「見る・さわる・においをかぐ」体験型プログラム。学校の総合学習や、地域の食育イベントとして活用いただけます。",
         details: `
-          <h4 style="border-left: 4px solid #28a745; padding-left: 10px; margin: 20px 0 10px;">ワークショップのテーマ</h4>
-          <ul style="padding-left: 20px; line-height: 1.8;">
-            <li>土壌微生物が喜ぶ土の作り方</li>
-            <li>自家採種（種採り）の基礎と楽しさ</li>
-            <li>雑草を敵にしない「草生栽培」の実践</li>
+          <h4 style="border-left: 4px solid #28a745; padding-left: 10px; margin: 20px 0 10px;">主な内容</h4>
+          <ul style="padding-left: 20px; line-height: 1.6;">
+            <li>タネから食卓までコース（タネまき〜収穫）</li>
+            <li>土といのちを学ぶコース（環境・理科学習）</li>
+            <li>収穫フェスティバル（1日完結型）</li>
           </ul>
-          <h4 style="border-left: 4px solid #28a745; padding-left: 10px; margin: 20px 0 10px;">開催形式</h4>
-          <p style="line-height: 1.6;">あらや農園での実地研修、またはオンライン座学を随時受付中。</p>
+          <p style="font-size:0.9em; color:#666;">※対象：小学1〜6年生。人数やご予算に応じて調整いたします。</p>
         `,
-        link: "mailto:arayanoen2018faq@gmail.com?subject=栽培ワークショップについて"
+        link: "lessons/#lessons-agri" // 詳細ページへのアンカーリンク
+      },
+      programming: {
+        title: "小学生向け プログラミング講座",
+        label: "オンライン・出張授業",
+        description: "Scratchを使ったゲーム作りから、パソコンを使わないアンプラグド講座まで。論理的思考力を楽しみながら育てます。",
+        details: `
+          <h4 style="border-left: 4px solid #007bff; padding-left: 10px; margin: 20px 0 10px;">学べること</h4>
+          <ul style="padding-left: 20px; line-height: 1.6;">
+            <li>Scratchでゲームづくり入門</li>
+            <li>命令の順番を考える「アンプラグド講座」</li>
+            <li>農業データとつなげる応用体験</li>
+          </ul>
+        `,
+        link: "lessons/#lessons-programming"
       }
     };
 
@@ -399,11 +399,13 @@
       const content = document.getElementById('modalContent');
       
       content.innerHTML = `
-        <h2 style="color: #333; margin: 0 0 15px; font-size: 1.5em; text-align: center;">${data.title}</h2>
-        <p style="color: #555; line-height: 1.7; background: #f9f9f9; padding: 15px; border-radius: 8px;">${data.description}</p>
+        <div style="display:inline-block; background:#f0f0f0; padding:2px 10px; border-radius:4px; font-size:12px; margin-bottom:10px;">${data.label}</div>
+        <h2 style="color: #333; margin: 0 0 15px; font-size: 1.5em;">${data.title}</h2>
+        <p style="color: #555; line-height: 1.7;">${data.description}</p>
         <div style="margin: 20px 0; font-size: 0.95em;">${data.details}</div>
         <div style="text-align: center; margin-top: 30px;">
-          <a href="${data.link}" onclick="closeKouza()" class="btn btn-primary" style="display: inline-block; padding: 15px 40px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 1.1em; transition: 0.3s;">この講座を詳しく聞く・申し込む</a>
+          <a href="${data.link}" class="btn btn-primary" style="display: block; padding: 15px; text-decoration: none; border-radius: 30px; font-weight: bold; margin-bottom:10px;">詳細カリキュラムを見る</a>
+          <a href="lessons/#contact" style="font-size: 0.9em; color: #007bff;">学校・団体さまのお問い合わせはこちら</a>
         </div>
       `;
       
@@ -417,7 +419,6 @@
       setTimeout(() => { modal.style.display = 'none'; }, 300);
     }
 
-    // モーダルの外側をクリックして閉じる
     document.getElementById('kouzaModal').addEventListener('click', function(e) {
       if (e.target === this) closeKouza();
     });
