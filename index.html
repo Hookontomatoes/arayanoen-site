@@ -39,7 +39,32 @@
   .card:hover {
     transform: translateY(-10px);
     box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
-  }    
+  }
+
+    /* カルーセルの土台（track）にスナップ機能を追加 */
+.track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory; /* 横方向にピタッと止まる設定 */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* iOSでの滑らかなスクロール */
+}
+
+/* 各カードに「ここで止まる」という印をつける */
+.track > * {
+  scroll-snap-align: start; /* カードの左端で止まる */
+  flex-shrink: 0;           /* カードが潰れないように固定 */
+}
+
+/* スクロールバーを非表示にする（デザインをスッキリさせる場合） */
+.track::-webkit-scrollbar {
+  display: none;
+}
+.track {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+    
 </style>
   
 </head>
@@ -536,72 +561,85 @@
 
     // スライダー初期化（タッチ＆ボタン＆ドット）
     // スライダー初期化（ループ対応版）
-    function initCarousel(root){
-      const track = root.querySelector('.track');
-      const prev  = root.querySelector('.navprev');
-      const next  = root.querySelector('.navnext');
-      const dots  = root.querySelector('.dots');
-      const cards = Array.from(track.children);
-      if(cards.length === 0) return;
+    function initCarousel(root) {
+  const track = root.querySelector('.track');
+  const prev = root.querySelector('.navprev');
+  const next = root.querySelector('.navnext');
+  const dots = root.querySelector('.dots');
+  const cards = Array.from(track ? track.children : []);
+  if (!track || cards.length === 0) return;
 
-      const getCardWidth = () => cards[0].getBoundingClientRect().width + 12; // gap 分
-      let index = 0;
+  // 1枚あたりの幅（カード本体 + 余白）を計算
+  const getCardWidth = () => {
+    const style = window.getComputedStyle(track);
+    const gap = parseInt(style.columnGap) || parseInt(style.gap) || 0;
+    return cards[0].getBoundingClientRect().width + gap;
+  };
 
-      // ドット生成
-      dots.innerHTML = '';
-      cards.forEach((_,i)=>{
-        const d = document.createElement('div');
-        d.className='dot'+(i===0?' active':'');
-        d.addEventListener('click', ()=>goTo(i));
-        dots.appendChild(d);
-      });
+  let index = 0;
 
-      const setDots = ()=>{
-        dots.querySelectorAll('.dot').forEach((e,i)=>e.classList.toggle('active', i===index));
-      };
+  // ドットの生成
+  if (dots) {
+    dots.innerHTML = '';
+    cards.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === 0 ? ' active' : '');
+      d.addEventListener('click', () => goTo(i));
+      dots.appendChild(d);
+    });
+  }
 
-      const goTo = (i)=>{
-        // --- ここでループの判定をします ---
-        if (i < 0) {
-          index = cards.length - 1; // 最初の前は「最後」へ
-        } else if (i >= cards.length) {
-          index = 0; // 最後の次は「最初」へ
-        } else {
-          index = i;
-        }
-        // ------------------------------
-        
-        track.scrollTo({left: index * getCardWidth(), behavior:'smooth'});
-        setDots();
-      };
-
-      prev.addEventListener('click', ()=>goTo(index-1));
-      next.addEventListener('click', ()=>goTo(index+1));
-
-      // スワイプ対応
-      let startX=null, scrollStart=null;
-      track.addEventListener('touchstart', (e)=>{
-        startX = e.touches[0].clientX; scrollStart = track.scrollLeft;
-      }, {passive:true});
-      track.addEventListener('touchmove', (e)=>{
-        if(startX==null) return;
-        const dx = e.touches[0].clientX - startX;
-        track.scrollLeft = scrollStart - dx;
-      }, {passive:true});
-      track.addEventListener('touchend', ()=>{
-        const cw = getCardWidth();
-        const newIndex = Math.round(track.scrollLeft / cw);
-        // スワイプ時もループ判定を入れるために goTo を使う
-        goTo(newIndex);
-        startX=null;
-      });
-
-      // リサイズで位置補正
-      window.addEventListener('resize', ()=>goTo(index));
+  const setDots = () => {
+    if (dots) {
+      dots.querySelectorAll('.dot').forEach((e, i) => e.classList.toggle('active', i === index));
     }
+  };
 
-    // スライダー初期化呼び出し（これは今までと同じ行です）
-    document.querySelectorAll('.carousel').forEach(initCarousel);
+  const goTo = (i) => {
+    // ループ処理
+    if (i < 0) {
+      index = cards.length - 1;
+    } else if (i >= cards.length) {
+      index = 0;
+    } else {
+      index = i;
+    }
+    
+    // スムーズにスクロール
+    track.scrollTo({
+      left: index * getCardWidth(),
+      behavior: 'smooth'
+    });
+    setDots();
+  };
+
+  if (prev) prev.addEventListener('click', () => goTo(index - 1));
+  if (next) next.addEventListener('click', () => goTo(index + 1));
+
+  // --- スワイプ（フリック）対応の核心 ---
+  let isScrolling;
+  track.addEventListener('scroll', () => {
+    // スクロールが止まった瞬間に、今どのカードにいるか判定する
+    window.clearTimeout(isScrolling);
+    isScrolling = setTimeout(() => {
+      const currentScroll = track.scrollLeft;
+      const width = getCardWidth();
+      const newIndex = Math.round(currentScroll / width);
+      
+      // 指を離した位置に合わせてインデックスを更新
+      if (index !== newIndex && newIndex >= 0 && newIndex < cards.length) {
+        index = newIndex;
+        setDots();
+      }
+    }, 100);
+  }, { passive: true });
+
+  // リサイズ時に位置を再調整
+  window.addEventListener('resize', () => goTo(index));
+}
+
+// ページ内のすべてのカルーセルを初期化
+document.querySelectorAll('.carousel').forEach(initCarousel);
 
     // ここからチャットボット UI 用のコード
     (function(){
