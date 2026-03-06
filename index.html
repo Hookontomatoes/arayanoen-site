@@ -64,6 +64,42 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+    /* カード全体の基本設定（全共通） */
+.card {
+  width: 280px;      /* カードの横幅を固定 */
+  flex-shrink: 0;    /* 横並び時に潰れないようにする */
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 画像を表示するエリアのサイズを固定 */
+.card-thumb {
+  width: 100%;
+  height: 180px;    /* ここで高さを固定します */
+  overflow: hidden;
+  background: #f5f5f5; /* 画像がない時の背景色 */
+}
+
+/* 中の画像を枠いっぱいに、かつ綺麗に収める */
+.card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 縦横比を保ったまま枠を埋める（重要！） */
+  display: block;
+}
+
+/* 商品セクションなど、trackの中の要素が間延びするのを防ぐ */
+.track {
+  display: flex;
+  align-items: flex-start; /* 上揃えにすることで、中身が縦に伸びるのを防ぐ */
+  gap: 12px;
+  padding: 10px 0;
+}
     
 </style>
   
