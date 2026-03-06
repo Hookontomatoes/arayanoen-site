@@ -609,16 +609,19 @@
       let originalCards = Array.from(track ? track.children : []);
       if (!track || originalCards.length === 0) return;
 
-      // 無限ループ用に最初と最後を複製
+      // 無限ループ用に複製（二重に追加して余白を作る）
       const firstClone = originalCards[0].cloneNode(true);
       const lastClone = originalCards[originalCards.length - 1].cloneNode(true);
       track.appendChild(firstClone);
       track.insertBefore(lastClone, originalCards[0]);
 
-      const allCards = Array.from(track.children);
+      // 1枚の幅を計算
       const getCardWidth = () => originalCards[0].getBoundingClientRect().width + 12;
-      
       let index = 1;
+
+      // 初期の位置（1枚目の本物）へ。
+      // CSSの scroll-behavior: smooth が邪魔をしないよう一時的に auto に固定。
+      track.style.scrollBehavior = 'auto';
       track.scrollLeft = getCardWidth();
 
       if (dots) {
@@ -638,30 +641,42 @@
         }
       };
 
-      const goTo = (i, behavior = 'smooth') => {
+      const goTo = (i) => {
         index = i;
-        track.scrollTo({ left: index * getCardWidth(), behavior: behavior });
+        track.style.scrollBehavior = 'smooth';
+        track.scrollLeft = index * getCardWidth();
         updateDots();
       };
 
       if (prev) prev.addEventListener('click', () => goTo(index - 1));
       if (next) next.addEventListener('click', () => goTo(index + 1));
 
+      // スクロール時のイベント
       track.addEventListener('scroll', () => {
         const width = getCardWidth();
-        if (track.scrollLeft <= 0) {
-          index = allCards.length - 2;
-          track.scrollTo({ left: index * width, behavior: 'auto' });
-        } else if (track.scrollLeft >= (allCards.length - 1) * width) {
+        const currentScroll = track.scrollLeft;
+
+        // 左端（複製された最後）まで来たら、本物の最後へ強制ワープ
+        if (currentScroll <= 0) {
+          track.style.scrollBehavior = 'auto';
+          index = originalCards.length;
+          track.scrollLeft = index * width;
+        } 
+        // 右端（複製された最初）まで来たら、本物の最初へ強制ワープ
+        else if (currentScroll >= (originalCards.length + 1) * width - 1) { // 誤差対策で-1
+          track.style.scrollBehavior = 'auto';
           index = 1;
-          track.scrollTo({ left: index * width, behavior: 'auto' });
+          track.scrollLeft = index * width;
         }
+
+        // 現在のインデックスを更新
         index = Math.round(track.scrollLeft / width);
         updateDots();
       }, { passive: true });
 
       window.addEventListener('resize', () => {
-        track.scrollTo({ left: index * getCardWidth(), behavior: 'auto' });
+        track.style.scrollBehavior = 'auto';
+        track.scrollLeft = index * getCardWidth();
       });
     }
 
