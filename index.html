@@ -15,8 +15,8 @@
     })(window, document, "clarity", "script", "v5defrlrld");
   </script>
   
-  <style>
-/* ほのか明朝（WOFF2） */
+ <style>
+/* ほのか明朝 */
 @font-face{
   font-family: "Honoka Shin Mincho L";
   src: url("assets/fonts/honoka-mincho/Honoka_Shin_Mincho_L.woff2") format("woff2");
@@ -25,70 +25,58 @@
   font-display: swap;
 }
 
-/* ヒーロー見出しだけ ほのか明朝の斜体風にする */
 .hero .honoka-italic{
   font-family: "Honoka Shin Mincho L", serif;
-  font-style: oblique 14deg;  /* 斜体の傾き。強すぎれば 10deg、弱ければ 14deg に */
+  font-style: oblique 14deg;
   letter-spacing: .02em;
 }
    
-  /* すべてのカードに共通の動きをつける */
-  .card {
-    transition: all 0.3s ease !important;
-  }
-  .card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
-  }
+/* ホバーアニメーション */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
 
-    /* カルーセルの土台（track）にスナップ機能を追加 */
+/* カルーセルの基本設定 */
 .track {
   display: flex;
   overflow-x: auto;
-  /* scroll-snap-type は JSのループと干渉しやすいため、
-     自由なスワイプを優先する場合は auto にするか外します */
-  scroll-snap-type: none; 
+  /* スワイプを軽くし、ピタッと止めるために mandatory に戻します */
+  scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   gap: 12px;
   padding: 10px 0;
-}
-    
-/* 各カードに「ここで止まる」という印をつける */
-.track > * {
-  scroll-snap-align: start; /* カードの左端で止まる */
-  flex-shrink: 0;           /* カードが潰れないように固定 */
-}
-
-/* スクロールバーを非表示にする（デザインをスッキリさせる場合） */
-.track::-webkit-scrollbar {
-  display: none;
-}
-.track {
-  -ms-overflow-style: none;
   scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-    
-/* カルーセル（商品・ブログ等）の中にあるカードの幅を厳密に固定する */
+.track::-webkit-scrollbar { display: none; }
+
+/* スライダー内のカード幅を完全に固定（1枚目が横長になるのを防ぐ） */
 .carousel .track > .card {
-  width: 280px !important;  /* 幅を280pxに固定（!importantで強制適用） */
-  min-width: 280px !important; /* 縮むのを防ぐ */
-  flex-shrink: 0 !important;   /* 横並び時に1枚目が広がったり、他が潰れたりするのを防ぐ */
+  width: 280px;
+  min-width: 280px;
+  flex: 0 0 280px; /* flex-grow, shrink, basisを一括指定して幅を死守 */
+  scroll-snap-align: start;
 }
 
-/* 画像部分のサイズと比率も固定 */
+/* 画像比率の固定 */
 .carousel .card-thumb {
-  width: 100% !important;
-  aspect-ratio: 4 / 3 !important;
+  width: 100%;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
+  background: #f5f5f5;
 }
 
 .carousel .card-thumb img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
-    
 </style>
   
 </head>
