@@ -31,6 +31,15 @@
   font-style: oblique 14deg;  /* 斜体の傾き。強すぎれば 10deg、弱ければ 14deg に */
   letter-spacing: .02em;
 }
+   
+  /* すべてのカードに共通の動きをつける */
+  .card {
+    transition: all 0.3s ease !important;
+  }
+  .card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15) !important;
+  }    
 </style>
   
 </head>
