@@ -602,83 +602,85 @@
     // スライダー初期化（タッチ＆ボタン＆ドット）
     // スライダー初期化（ループ対応版）
     function initCarousel(root) {
-      const track = root.querySelector('.track');
-      const prev = root.querySelector('.navprev');
-      const next = root.querySelector('.navnext');
-      const dots = root.querySelector('.dots');
-      let originalCards = Array.from(track ? track.children : []);
-      if (!track || originalCards.length === 0) return;
+  const track = root.querySelector('.track');
+  const prev = root.querySelector('.navprev');
+  const next = root.querySelector('.navnext');
+  const dots = root.querySelector('.dots');
+  let originalCards = Array.from(track ? track.children : []);
+  if (!track || originalCards.length === 0) return;
 
-      // 無限ループ用に複製（二重に追加して余白を作る）
-      const firstClone = originalCards[0].cloneNode(true);
-      const lastClone = originalCards[originalCards.length - 1].cloneNode(true);
-      track.appendChild(firstClone);
-      track.insertBefore(lastClone, originalCards[0]);
+  // 1. 無限ループ用に複製
+  const firstClone = originalCards[0].cloneNode(true);
+  const lastClone = originalCards[originalCards.length - 1].cloneNode(true);
+  track.appendChild(firstClone);
+  track.insertBefore(lastClone, originalCards[0]);
 
-      // 1枚の幅を計算
-      const getCardWidth = () => originalCards[0].getBoundingClientRect().width + 12;
-      let index = 1;
+  const getCardWidth = () => originalCards[0].getBoundingClientRect().width + 12;
+  let index = 1;
+  let isThrottled = false; // ループの連続発火を防ぐフラグ
 
-      // 初期の位置（1枚目の本物）へ。
-      // CSSの scroll-behavior: smooth が邪魔をしないよう一時的に auto に固定。
+  // 2. 初期位置設定（JS側で挙動を制御するためCSSのsmoothは一時オフ）
+  track.style.scrollBehavior = 'auto';
+  track.scrollLeft = getCardWidth();
+
+  if (dots) {
+    dots.innerHTML = '';
+    originalCards.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i === 0 ? ' active' : '');
+      d.addEventListener('click', () => goTo(i + 1));
+      dots.appendChild(d);
+    });
+  }
+
+  const updateDots = () => {
+    if (!dots) return;
+    const dotIndex = (index - 1 + originalCards.length) % originalCards.length;
+    dots.querySelectorAll('.dot').forEach((e, i) => e.classList.toggle('active', i === dotIndex));
+  };
+
+  const goTo = (i) => {
+    index = i;
+    track.style.scrollBehavior = 'smooth';
+    track.scrollLeft = index * getCardWidth();
+    updateDots();
+  };
+
+  if (prev) prev.addEventListener('click', () => goTo(index - 1));
+  if (next) next.addEventListener('click', () => goTo(index + 1));
+
+  // 3. スムーズなワープ処理
+  track.addEventListener('scroll', () => {
+    const width = getCardWidth();
+    const scrollLeft = track.scrollLeft;
+
+    // 端に到達した際のワープ判定
+    // behavior: 'auto' の前に、進行中の smooth スクロールを打ち消すのがコツです
+    if (scrollLeft <= width * 0.1) { 
+      // 左端：本物の最後へ
       track.style.scrollBehavior = 'auto';
-      track.scrollLeft = getCardWidth();
-
-      if (dots) {
-        dots.innerHTML = '';
-        originalCards.forEach((_, i) => {
-          const d = document.createElement('div');
-          d.className = 'dot' + (i === 0 ? ' active' : '');
-          d.addEventListener('click', () => goTo(i + 1));
-          dots.appendChild(d);
-        });
-      }
-
-      const updateDots = () => {
-        if (dots) {
-          const dotIndex = (index - 1 + originalCards.length) % originalCards.length;
-          dots.querySelectorAll('.dot').forEach((e, i) => e.classList.toggle('active', i === dotIndex));
-        }
-      };
-
-      const goTo = (i) => {
-        index = i;
-        track.style.scrollBehavior = 'smooth';
-        track.scrollLeft = index * getCardWidth();
-        updateDots();
-      };
-
-      if (prev) prev.addEventListener('click', () => goTo(index - 1));
-      if (next) next.addEventListener('click', () => goTo(index + 1));
-
-      // スクロール時のイベント
-      track.addEventListener('scroll', () => {
-        const width = getCardWidth();
-        const currentScroll = track.scrollLeft;
-
-        // 左端（複製された最後）まで来たら、本物の最後へ強制ワープ
-        if (currentScroll <= 0) {
-          track.style.scrollBehavior = 'auto';
-          index = originalCards.length;
-          track.scrollLeft = index * width;
-        } 
-        // 右端（複製された最初）まで来たら、本物の最初へ強制ワープ
-        else if (currentScroll >= (originalCards.length + 1) * width - 1) { // 誤差対策で-1
-          track.style.scrollBehavior = 'auto';
-          index = 1;
-          track.scrollLeft = index * width;
-        }
-
-        // 現在のインデックスを更新
-        index = Math.round(track.scrollLeft / width);
-        updateDots();
-      }, { passive: true });
-
-      window.addEventListener('resize', () => {
-        track.style.scrollBehavior = 'auto';
-        track.scrollLeft = index * getCardWidth();
-      });
+      index = originalCards.length;
+      track.scrollLeft = index * width;
+    } else if (scrollLeft >= (originalCards.length + 0.9) * width) {
+      // 右端：本物の最初へ
+      track.style.scrollBehavior = 'auto';
+      index = 1;
+      track.scrollLeft = index * width;
     }
+
+    // ドットの更新（計算を軽くするため、少し余裕を持たせる）
+    const newIndex = Math.round(track.scrollLeft / width);
+    if (newIndex !== index) {
+      index = newIndex;
+      updateDots();
+    }
+  }, { passive: true });
+
+  window.addEventListener('resize', () => {
+    track.style.scrollBehavior = 'auto';
+    track.scrollLeft = index * getCardWidth();
+  });
+}
 
 // ページ内のすべてのカルーセルを初期化
 document.querySelectorAll('.carousel').forEach(initCarousel);
