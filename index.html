@@ -69,6 +69,18 @@
   scrollbar-width: none;
 }
     
+/* カルーセル（スライダー）の中にあるカードの画像だけを固定する */
+.carousel .card-thumb {
+  width: 100%;
+  height: 180px;    /* ここで高さを固定 */
+  overflow: hidden;
+}
+
+.carousel .card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 比率を維持して収める */
+  display: block;
 }
     
 </style>
