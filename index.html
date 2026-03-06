@@ -69,18 +69,24 @@
   scrollbar-width: none;
 }
     
-/* カルーセル（スライダー）の中にあるカードの画像だけを固定する */
+/* カルーセル（商品・ブログ等）の中にあるカードの幅を厳密に固定する */
+.carousel .track > .card {
+  width: 280px !important;  /* 幅を280pxに固定（!importantで強制適用） */
+  min-width: 280px !important; /* 縮むのを防ぐ */
+  flex-shrink: 0 !important;   /* 横並び時に1枚目が広がったり、他が潰れたりするのを防ぐ */
+}
+
+/* 画像部分のサイズと比率も固定 */
 .carousel .card-thumb {
-  width: 100%;
-  height: 180px;    /* ここで高さを固定 */
+  width: 100% !important;
+  aspect-ratio: 4 / 3 !important;
   overflow: hidden;
 }
 
 .carousel .card-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* 比率を維持して収める */
-  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
     
 </style>
