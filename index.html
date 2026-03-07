@@ -241,14 +241,183 @@
       </div>
     </section>
 
-    <!-- 2. 栽培記録（スライド） -->
+    <!-- 2. 栽培記録 -->
     <section id="cultivation">
       <div class="container">
         <div class="band-title">
           <h2>2. 栽培記録</h2>
-          <a class="more" href="blog/">作成中 →</a>
-        </div>        
+          <span class="more" id="cultivation-updated"></span>
+        </div>
+
+        <!-- フィルター -->
+        <div id="cultivation-filter" style="margin-bottom:12px; display:flex; gap:8px; flex-wrap:wrap;"></div>
+
+        <!-- カード一覧 -->
+        <div id="cultivation-list" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;">
+          <p style="color:#aaa; font-size:14px;">読み込み中…</p>
+        </div>
       </div>
+
+      <style>
+        .cult-card {
+          background:#fff;
+          border-radius:10px;
+          box-shadow:0 2px 8px rgba(0,0,0,0.08);
+          overflow:hidden;
+          transition:transform 0.25s, box-shadow 0.25s;
+        }
+        .cult-card:hover {
+          transform:translateY(-4px);
+          box-shadow:0 8px 18px rgba(0,0,0,0.13);
+        }
+        .cult-card-head {
+          background:#2e7d32;
+          color:#fff;
+          padding:10px 14px 8px;
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:8px;
+        }
+        .cult-card-head .crop {
+          font-weight:700;
+          font-size:14px;
+          white-space:nowrap;
+          overflow:hidden;
+          text-overflow:ellipsis;
+        }
+        .cult-card-head .date {
+          font-size:12px;
+          opacity:.85;
+          white-space:nowrap;
+          flex-shrink:0;
+        }
+        .cult-card-body {
+          padding:12px 14px;
+        }
+        .cult-work {
+          font-size:15px;
+          font-weight:600;
+          color:#1b5e20;
+          margin:0 0 6px;
+        }
+        .cult-field {
+          font-size:12px;
+          color:#888;
+          margin:0 0 6px;
+        }
+        .cult-tag {
+          display:inline-block;
+          background:#e8f5e9;
+          color:#2e7d32;
+          border-radius:4px;
+          font-size:11px;
+          padding:2px 7px;
+          margin:2px 2px 0 0;
+        }
+        .cult-tag.tool { background:#e3f2fd; color:#1565c0; }
+        .filter-btn {
+          padding:5px 12px;
+          border:1px solid #ccc;
+          border-radius:20px;
+          background:#fff;
+          font-size:13px;
+          cursor:pointer;
+          transition:background 0.2s, color 0.2s;
+        }
+        .filter-btn.active {
+          background:#2e7d32;
+          color:#fff;
+          border-color:#2e7d32;
+        }
+      </style>
+
+      <script>
+      (function(){
+        const listEl   = document.getElementById('cultivation-list');
+        const filterEl = document.getElementById('cultivation-filter');
+        const updEl    = document.getElementById('cultivation-updated');
+        let allRecords = [];
+        let activeCrop = 'すべて';
+
+        fetch('data/cultivation.json?t=' + Date.now())
+          .then(r => r.json())
+          .then(json => {
+            allRecords = json.records || [];
+
+            // 更新日時
+            if (json.updated) {
+              updEl.textContent = '最終更新: ' + json.updated.slice(0,10);
+            }
+
+            // 作物フィルターボタン生成
+            const crops = ['すべて', ...new Set(allRecords.map(r => r.crop).filter(Boolean))];
+            filterEl.innerHTML = '';
+            crops.forEach(c => {
+              const btn = document.createElement('button');
+              btn.className = 'filter-btn' + (c === activeCrop ? ' active' : '');
+              btn.textContent = c;
+              btn.addEventListener('click', () => {
+                activeCrop = c;
+                filterEl.querySelectorAll('.filter-btn').forEach(b =>
+                  b.classList.toggle('active', b.textContent === c));
+                render();
+              });
+              filterEl.appendChild(btn);
+            });
+
+            render();
+          })
+          .catch(() => {
+            listEl.innerHTML = '<p style="color:#aaa;font-size:14px;">栽培記録を準備中です。</p>';
+          });
+
+        function render() {
+          const filtered = activeCrop === 'すべて'
+            ? allRecords
+            : allRecords.filter(r => r.crop === activeCrop);
+
+          // 日付降順、最新50件
+          const sorted = filtered
+            .slice()
+            .sort((a,b) => b.date.localeCompare(a.date))
+            .slice(0, 50);
+
+          if (sorted.length === 0) {
+            listEl.innerHTML = '<p style="color:#aaa;font-size:14px;">記録がありません。</p>';
+            return;
+          }
+
+          listEl.innerHTML = '';
+          sorted.forEach(rec => {
+            const card = document.createElement('div');
+            card.className = 'cult-card';
+
+            const tags = [];
+            if (rec.materials) tags.push(`<span class="cult-tag">${esc(rec.materials)}</span>`);
+            if (rec.tools)     tags.push(`<span class="cult-tag tool">${esc(rec.tools)}</span>`);
+
+            card.innerHTML = `
+              <div class="cult-card-head">
+                <span class="crop">${esc(rec.crop)}</span>
+                <span class="date">${esc(rec.date)}</span>
+              </div>
+              <div class="cult-card-body">
+                <p class="cult-work">${esc(rec.work)}</p>
+                <p class="cult-field">📍 ${esc(rec.field)}</p>
+                ${tags.length ? '<div>' + tags.join('') + '</div>' : ''}
+              </div>`;
+            listEl.appendChild(card);
+          });
+        }
+
+        function esc(s) {
+          return String(s || '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+      })();
+      </script>
     </section>
 
     <!-- 3. ブログ（note） -->
