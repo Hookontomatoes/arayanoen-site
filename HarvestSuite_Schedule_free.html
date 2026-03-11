@@ -1,0 +1,2670 @@
+<!DOCTYPE html>
+<!--
+  HarvestSuite スケジュール Free v1.0.0
+  Copyright (c) 2026 あらや農園. All Rights Reserved.
+  HarvestSuite is a trademark of あらや農園.
+  無断複製・改変・再配布を禁じます。
+-->
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HarvestSuite スケジュール Free | あらや農園™</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --harvest: #fb8c00;
+            --border: #cfd8dc;
+            --day-size: 24px;
+            --frost-bg: #e3f2fd;
+            /* 霜注意報の背景色 */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: sans-serif;
+            background: #f1f8e9;
+            overflow: hidden;
+            height: 100vh;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* スクロールバーを見やすく強制 */
+        ::-webkit-scrollbar {
+            width: 14px;
+            height: 14px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 7px;
+            border: 3px solid #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn.active {
+            background: white !important;
+            color: var(--primary) !important;
+        }
+
+        .app-main {
+            display: flex;
+            height: calc(100vh - 76px); /* -50px header -26px free banner */
+            overflow: hidden;
+            position: relative;
+        }
+
+        .axis-fixed {
+            background: #fafafa;
+            overflow: hidden;
+            z-index: 200;
+            flex-shrink: 0;
+            display: flex;
+            white-space: nowrap;
+            /* 折り返しを防止 */
+            border-bottom: 2px solid var(--border);
+        }
+
+        .day-cell {
+            background: white !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 4px 0;
+            gap: 2px;
+            overflow: hidden;
+            flex-shrink: 0;
+            border-right: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .day-cell.frost-active {
+            background: #e3f2fd !important;
+            /* 霜注意報の背景色 */
+        }
+
+        .day-cell.month-sep {
+            border-left: 2px solid #ccc;
+        }
+
+        .day-num {
+            font-size: 11px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .day-term {
+            font-size: 8px;
+            color: #d32f2f;
+            font-weight: bold;
+            height: 10px;
+            line-height: 10px;
+        }
+
+        .day-micro {
+            font-size: 7px;
+            color: #2e7d32;
+            height: 10px;
+            line-height: 10px;
+        }
+
+        .day-tide {
+            font-size: 7px;
+            color: #1976d2;
+            height: 10px;
+            line-height: 10px;
+        }
+
+        .day-lunar {
+            font-size: 8px;
+            color: #444;
+            height: 22px;
+            line-height: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .day-weather {
+            font-size: 11px;
+            height: 11px;
+            line-height: 11px;
+            white-space: nowrap;
+        }
+
+        .day-num,
+        .day-term,
+        .day-micro,
+        .day-tide,
+        .day-lunar {
+            white-space: nowrap;
+            /* 横方向の文字切れを防止 */
+        }
+
+        .day-temp {
+            font-size: 8px;
+            display: flex;
+            gap: 3px;
+            margin-top: 1px;
+        }
+
+        .t-max {
+            color: #ef5350;
+            font-weight: bold;
+        }
+
+        .t-min {
+            color: #42a5f5;
+            font-weight: bold;
+        }
+
+        .hist-temp {
+            font-size: 7px;
+            color: #999;
+            margin-top: 0;
+            line-height: 1;
+        }
+
+        .frost-warn {
+            background-color: #e3f2fd !important;
+        }
+
+        .month-sep {
+            background: #e8f5e9 !important;
+            border-color: var(--primary) !important;
+        }
+
+        /* 全体表示時の調整 */
+        .day-cell.small-view {
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            justify-content: center;
+            overflow: visible !important;
+            /* 絶対条件：はみ出しを許可 */
+            position: relative;
+        }
+
+        .small-view * {
+            display: none !important;
+        }
+
+        .small-view .day-num {
+            display: block !important;
+            font-size: 10px !important;
+            white-space: nowrap;
+            opacity: 0;
+            line-height: 1;
+            position: absolute;
+            /* 親が狭くても表示を維持 */
+            z-index: 10;
+        }
+
+        .small-view.month-sep {
+            background: #c8e6c9 !important;
+            border-right: 0.5px solid var(--primary) !important;
+            border-bottom: 0.5px solid var(--primary) !important;
+            z-index: 5;
+        }
+
+        .small-view.month-sep .day-num {
+            opacity: 1;
+            color: var(--primary) !important;
+            font-weight: bold !important;
+        }
+
+        /* PCは横並び、Mobileは縦並びのためラベルのズレを調整 */
+        .is-pc .small-view.month-sep .day-num {
+            top: 2px;
+            left: 2px;
+        }
+
+        .is-mobile .small-view.month-sep .day-num {
+            left: 4px;
+            top: 2px;
+        }
+
+        .grid-scroll {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        .field-col {
+            min-width: 100%;
+            border-bottom: 1px solid var(--border);
+            background: white;
+            position: relative;
+            display: flex;
+        }
+
+        .field-header {
+            background: white;
+            border-right: 2px solid var(--primary);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            left: 0;
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .data-layer {
+            position: relative;
+            flex: 1;
+            min-height: 100%;
+            pointer-events: auto;
+        }
+
+        .p-bar {
+            position: absolute;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        /* 作業期間スパン（潅水・マルチ・トンネル・被覆などの期間帯） */
+        /* 作業期間スパン: バー下端(PC)/右端(モバイル)に5pxストリップとして表示 */
+        /* 作業期間帯（収穫バーと同じ見た目・ポジション） */
+        .p-work-band {
+            position: absolute;
+            border-radius: 5px;
+            z-index: 5;
+            pointer-events: auto;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            opacity: 0.88;
+        }
+        .p-work-band .wband-label {
+            font-size: 9px;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 4px;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            line-height: 1;
+        }
+        /* 前年繰り越し作業：左端破線 */
+        .p-work-band.work-carryover {
+            border-left: 3px dashed rgba(255,255,255,0.85);
+        }
+        @media (max-width: 768px) {
+            .p-work-band.work-carryover {
+                border-left: none;
+                border-top: 3px dashed rgba(255,255,255,0.85);
+            }
+        }
+        /* 作業種別ごとの色 */
+        .p-work-band[data-wtype="w3"]  { background: #1976d2; } /* 潅水: 青 */
+        .p-work-band[data-wtype="w9"]  { background: #5d4037; } /* マルチ: 茶 */
+        .p-work-band[data-wtype="w10"] { background: #388e3c; } /* トンネル: 緑 */
+        .p-work-band[data-wtype="w11"] { background: #7b1fa2; } /* 被覆: 紫 */
+        /* 単日作業マークの日付ラベル（left/topはインラインで指定） */
+        .p-mark-label {
+            position: absolute;
+            font-size: 9px;
+            background: rgba(0,0,0,0.60);
+            color: #fff;
+            border-radius: 3px;
+            padding: 1px 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 101;
+            line-height: 1.4;
+            transform: none;
+        }
+
+        /* 前年からの繰り越し作付けバー */
+        .p-bar.p-carryover .p-bar-line {
+            border-left: 4px dashed rgba(255, 255, 255, 0.85);
+        }
+        @media (max-width: 768px) {
+            .p-bar.p-carryover .p-bar-line {
+                border-left: none;
+                border-top: 4px dashed rgba(255, 255, 255, 0.85);
+            }
+        }
+        .p-carryover-label {
+            position: absolute;
+            font-size: 8px;
+            color: white;
+            background: rgba(0, 0, 0, 0.40);
+            border-radius: 2px;
+            padding: 0 2px;
+            pointer-events: none;
+            z-index: 10;
+            white-space: nowrap;
+            line-height: 1.4;
+        }
+        .p-carryover-label.pc-label {
+            left: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .p-carryover-label.mob-label {
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .p-bar-line {
+            background: #8bc34a;
+            border-radius: 4px;
+            position: absolute;
+            box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.2);
+            pointer-events: auto;
+            cursor: grab;
+        }
+
+        .p-icon,
+        .p-mark {
+            position: absolute;
+            background: white;
+            border: 2.5px solid #8bc34a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+            z-index: 100;
+            cursor: grab;
+            pointer-events: auto;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .p-mark {
+            border-color: #666;
+            width: 30px;
+            height: 30px;
+        }
+
+        .kama-svg {
+            width: 22px;
+            height: 22px;
+            transform: rotate(-20deg);
+        }
+
+        .p-harvest {
+            position: absolute;
+            background: var(--harvest);
+            z-index: 2;
+            border-radius: 11px;
+            pointer-events: none;
+        }
+
+        .p-resize-handle {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #2e7d32;
+            border: 2px solid white;
+            border-radius: 50%;
+            z-index: 150;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        @media (min-width: 769px) {
+            .app-main {
+                flex-direction: column;
+                padding-bottom: 80px;
+                /* パレットでスクロールバーが隠れないように調整 */
+            }
+
+            .grid-scroll {
+                overflow-x: scroll !important;
+            }
+
+            .axis-fixed {
+                overflow-x: scroll !important;
+                height: 140px;
+                /* renderUIで動的に設定されるがCSSでも確保 */
+                padding-left: 140px;
+                /* 見出し幅(140px)に合わせる */
+
+                /* スクロールバーを非表示（gridと同期するので不要） */
+                scrollbar-width: none;        /* Firefox */
+                -ms-overflow-style: none;     /* IE/Edge */
+            }
+
+            .axis-fixed::-webkit-scrollbar {
+                display: none;                /* Chrome / Safari */
+            }
+
+            /* ドラッグ可能なエリアにグラブカーソルを表示 */
+            .data-layer {
+                cursor: grab;
+            }
+
+            .field-col {
+                height: 100px;
+                width: max-content !important;
+                /* 横幅を内容に合わせて拡張し、スクロールを発生させる */
+                min-width: 100%;
+                display: flex;
+            }
+
+            .field-header {
+                width: 140px;
+                /* 120から140に拡大してゆとりを持たせる */
+                height: 100%;
+            }
+
+            .day-cell {
+                height: 100%;
+                /* 親の高さ(160px)に合わせる */
+                min-height: 140px;
+            }
+
+            .p-bar-line {
+                height: 8px;
+                width: 100%;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+
+            .p-harvest {
+                top: 50%;
+                height: 22px;
+                transform: translateY(-50%);
+            }
+
+            .p-work-band {
+                top: 50%;
+                height: 16px;
+                transform: translateY(-50%);
+            }
+
+            .p-harvest.tbd {
+                background: linear-gradient(to right, var(--harvest) 0%, rgba(251, 140, 0, 0) 100%);
+                clip-path: polygon(0% 0%, 100% 35%, 100% 65%, 0% 100%);
+            }
+
+            .p-icon,
+            .p-mark {
+                top: 50%;
+                transform: translate(-50%, -50%);
+                width: 34px;
+                height: 34px;
+            }
+
+            .p-resize-handle {
+                right: -9px;
+                top: 50%;
+                transform: translateY(-50%);
+                cursor: ew-resize;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-main {
+                flex-direction: row;
+            }
+
+            .axis-fixed {
+                width: 100px;
+                height: 100%;
+                flex-direction: column;
+                border-right: 2px solid var(--border);
+                border-bottom: none; /* PC用のborder-bottomを打ち消す */
+                padding-top: 40px;
+                /* フィールドヘッダーの高さ(40px)に合わせる */
+                overflow: hidden; /* scrollTop同期のため明示的に指定 */
+            }
+
+            .grid-scroll {
+                flex: 1;
+                overflow: auto;
+                display: flex;
+                align-items: flex-start; /* field-colを内容の高さ(年間分)に合わせる */
+            }
+
+            .field-col {
+                min-width: 140px;
+                display: flex;
+                flex-direction: column;
+                border-right: 1px solid var(--border);
+                flex-shrink: 0;
+            }
+
+            .field-header {
+                height: 40px;
+                position: sticky;
+                top: 0;
+                left: auto;
+                border-bottom: 2px solid var(--primary);
+                z-index: 100;
+                background: white;
+                width: 100%; /* 列幅いっぱいに広げる */
+            }
+
+            .day-cell {
+                width: 100px;
+                border-bottom: 1px solid #f0f0f0;
+                padding: 3px 2px;
+                gap: 1px;
+                overflow: hidden; /* dsより大きい内容は隠す */
+            }
+
+            /* モバイル：day-numの高さをブラウザ依存にさせない */
+            .day-num {
+                height: 13px;
+                line-height: 13px;
+            }
+
+            /* モバイル：旧暦2行(計22px)をそのまま表示。height制限しない */
+            .day-lunar {
+                height: 22px;
+                line-height: 10px;
+            }
+
+            .p-bar-line {
+                width: 8px;
+                height: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .p-harvest {
+                left: 50%;
+                width: 22px;
+                transform: translateX(-50%);
+            }
+
+            .p-work-band {
+                left: 50%;
+                width: 16px;
+                transform: translateX(-50%);
+                flex-direction: column;
+                justify-content: flex-start;
+            }
+
+            .p-harvest.tbd {
+                background: linear-gradient(to bottom, var(--harvest) 0%, rgba(251, 140, 0, 0) 100%);
+                clip-path: polygon(0% 0%, 100% 0%, 75% 100%, 25% 100%);
+            }
+
+            .p-icon,
+            .p-mark {
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 34px;
+                height: 34px;
+            }
+
+            .p-resize-handle {
+                bottom: -9px;
+                left: 50%;
+                transform: translateX(-50%);
+                cursor: ns-resize;
+            }
+        }
+
+        #printArea {
+            display: none;
+        }
+
+
+        /* モバイルヘッダー: 画面幅が狭い場合にブランドテキストを非表示 */
+        @media (max-width: 480px) {
+            #brand-text-main { display: none !important; }
+            #brand-text-sub  { display: none !important; }
+        }
+        @media (max-width: 600px) {
+            .btn-label-hide { display: none; }
+        }
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+
+            body {
+                overflow: visible !important;
+                height: auto !important;
+                background: white;
+            }
+
+            header,
+            .palette,
+            .app-main,
+            #dateTip,
+            #free-limit-bar,
+            .modal {
+                display: none !important;
+            }
+
+            #printArea {
+                display: block !important;
+                width: 210mm;
+            }
+
+            .print-page {
+                width: 210mm;
+                height: 297mm;
+                padding: 10mm;
+                page-break-after: always;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                position: relative;
+                box-sizing: border-box;
+                background: white;
+                overflow: hidden;
+            }
+
+            .print-title {
+                font-size: 16pt;
+                font-weight: bold;
+                border-bottom: 2pt solid black;
+                margin-bottom: 5mm;
+                display: flex;
+                justify-content: space-between;
+            }
+
+            .print-grid {
+                display: flex;
+                flex-direction: column;
+                border: 0.5pt solid black;
+                height: 247mm;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .date-row-print {
+                height: 10mm;
+                border-bottom: 0.5pt solid black;
+                display: flex;
+                background: #f5f5f5;
+                flex-shrink: 0;
+            }
+
+            .date-spacer-print {
+                width: 30mm;
+                border-right: 0.5pt solid black;
+                flex-shrink: 0;
+            }
+
+            .date-labels-print {
+                flex: 1;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .month-marker-print {
+                position: absolute;
+                top: 0;
+                height: 100%;
+                border-left: 0.3pt solid #888;
+                padding-left: 2mm;
+                font-size: 10pt;
+                font-weight: bold;
+                display: flex;
+                align-items: center;
+                white-space: nowrap;
+            }
+
+            .f-row-print {
+                height: 25mm;
+                border-bottom: 0.2pt solid #666;
+                display: flex;
+                position: relative;
+            }
+
+            .f-name-print {
+                width: 30mm;
+                border-right: 0.5pt solid black;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 10pt;
+                background: #fafafa;
+            }
+
+            .f-data-print {
+                flex: 1;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .nori {
+                position: absolute;
+                width: 15mm;
+                height: 100%;
+                top: 0;
+                background: repeating-linear-gradient(45deg, #eee 0mm, #eee 3mm, #fff 3mm, #fff 6mm);
+                border-left: 0.3pt dashed red;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 100;
+            }
+
+            .nori-right {
+                right: 0;
+            }
+
+            .nori-left {
+                left: 0;
+                border-left: none;
+                border-right: 0.3pt dashed red;
+            }
+
+            .nori-label {
+                transform: rotate(90deg);
+                color: red;
+                font-size: 8pt;
+                font-weight: bold;
+                white-space: nowrap;
+            }
+        }
+
+        .palette {
+            position: fixed;
+            bottom: 0;
+            /* 下端にぴったりつける */
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px 20px 0 0;
+            padding: 12px;
+            padding-top: 25px;
+            /* ハンドル分のスペース */
+            box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 折りたたみ状態 */
+        .palette.collapsed {
+            transform: translateY(calc(100% - 25px));
+            /* ハンドルだけ残して沈める */
+        }
+
+        /* つまみ（ハンドル） */
+        .pal-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .pal-handle::after {
+            content: "";
+            width: 40px;
+            height: 4px;
+            background: #ccc;
+            border-radius: 2px;
+        }
+
+        .pal-row {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+            transition: opacity 0.2s;
+        }
+
+        .palette.collapsed .pal-row {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .p-btn {
+            flex-shrink: 0;
+            width: 52px;
+            height: 52px;
+            background: white;
+            border: 1.5px solid #eee;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .p-btn span {
+            font-size: 8px;
+            color: #777;
+            margin-top: 2px;
+            font-weight: bold;
+        }
+
+        #dateTip {
+            position: fixed;
+            background: #333;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            pointer-events: none;
+            display: none;
+            z-index: 5000;
+        }
+
+        .ghost {
+            opacity: 0.7;
+            pointer-events: none;
+            position: fixed;
+            z-index: 6000;
+            transform: scale(1.4);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 50%;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-inner {
+            background: white;
+            padding: 25px;
+            border-radius: 25px;
+            width: 90%;
+            max-width: 440px;
+            text-align: center;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* マスター編集用スタイル */
+        .master-form {
+            text-align: left;
+        }
+
+        .master-form label {
+            display: block;
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .master-form input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 4px;
+        }
+
+        .master-item-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .master-item-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .master-item-info {
+            flex: 1;
+        }
+
+        .master-item-name {
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .master-actions {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .search-result-item:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+            <!-- ロゴエリア：あらや農園キャラクター画像をここに配置 -->
+            <div id="brand-logo" style="width:36px; height:36px; border-radius:50%; overflow:hidden; flex-shrink:0; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center;"><img src="data:image/png;base64,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" style="width:36px; height:36px; object-fit:cover;" alt="あらや農園ロゴ"></div>
+            <div style="min-width:0; overflow:hidden;">
+                <div id="brand-text-main" style="font-size:13px; font-weight:900; letter-spacing:0.5px; white-space:nowrap; line-height:1.2; overflow:hidden; text-overflow:ellipsis;">
+                    HarvestSuite <span style="font-size:10px; font-weight:600; opacity:0.85;">スケジュール</span> <span style="font-size:9px; font-weight:700; background:rgba(255,200,0,0.25); padding:1px 5px; border-radius:8px; letter-spacing:0.5px;">Free</span>
+                </div>
+                <div id="brand-text-sub" style="font-size:9px; opacity:0.75; letter-spacing:0.3px; white-space:nowrap;">あらや農園™</div>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn" style="background:#e65100; padding:6px 8px;" onclick="window.print()">🖨️ <span class="btn-label-hide">印刷</span></button>
+            <button class="btn" id="btnFrost" style="padding:6px 8px;" onclick="toggleFrost()">❄️ 霜注意</button>
+            <button class="btn" id="btnZoom" style="padding:6px 8px;" onclick="toggleZoom()">🔍 全体</button>
+            <button class="btn" id="btnCompare" style="padding:6px 8px; opacity:0.6;" onclick="showUpgradePrompt('前年比較')">🔄 前年 🔒</button>
+            <button class="btn" style="padding:6px 8px;" onclick="openMaster()">⚙️</button>
+            <button class="btn" style="padding:6px 8px; background:rgba(255,255,255,0.15);" onclick="openAbout()">ℹ️</button>
+        </div>
+    </header>
+    <div id="free-limit-bar" style="background:#fff9c4; border-bottom:1px solid #f9a825; padding:3px 12px; font-size:11px; color:#e65100; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;"><span id="free-status-text">Free版：作物配置 0/3 | 圃場 1/1</span><span onclick="showUpgradePrompt('すべての機能')" style="cursor:pointer; font-weight:bold; color:#2e7d32; text-decoration:underline;">Pro版にアップグレード →</span></div>
+    <div class="app-main">
+        <div class="axis-fixed" id="axisFixed"></div>
+        <div class="grid-scroll" id="gridScroll"></div>
+    </div>
+    <div class="palette" id="palette">
+        <div class="pal-handle" onclick="togglePalette()"></div>
+        <div class="pal-row" id="p-crops"></div>
+        <div class="pal-row" id="p-works" style="margin-top:8px;"></div>
+    </div>
+    <div id="dateTip"></div>
+    <div id="printArea"></div>
+
+    <!-- モーダル -->
+    <div class="modal" id="masterModal">
+        <div class="modal-inner">
+            <h3 id="m-title" style="margin-bottom:20px;">項目の管理</h3>
+            <div id="m-content"></div>
+            <div class="master-actions">
+                <button class="btn" style="width:100%; height:45px; background:#666; font-size:16px;"
+                    onclick="closeModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DB_KEY = 'FarmV4_FREE_v1';
+        const SOLAR_TERMS = { "0305": "啓蟄", "0320": "春分", "0404": "清明", "0420": "穀雨", "0505": "立夏", "0521": "小満", "0605": "芒種", "0621": "夏至" };
+        const MICRO_SEASONS = { "0310": "桃始笑", "0315": "倉庚鳴", "0320": "雀始巣", "0404": "玄鳥至", "0420": "葭始生", "0505": "蛙始鳴", "0605": "蟷螂生" };
+        const WMO_MAP = {
+            0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 48: "🌫️",
+            51: "🌦️", 53: "🌦️", 55: "🌦️", 61: "🌧️", 63: "🌧️", 65: "🌧️",
+            71: "🌨️", 73: "🌨️", 75: "🌨️", 80: "⛈️", 81: "⛈️", 82: "⛈️",
+            95: "⚡", 96: "⚡", 99: "⚡"
+        };
+        const WEATHER_ICONS = ["☀️", "☀️", "☁️", "☁️", "☂️", "☀️", "☁️"];
+        const KANJI_M = ["", "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
+        const KANJI_D = ["", "一日", "二日", "三日", "四日", "五日", "六日", "七日", "八日", "九日", "十日", "十一日", "十二日", "十三日", "十四日", "十五日", "十六日", "十七日", "十八日", "十九日", "二十日", "廿一日", "廿二日", "廿三日", "廿四日", "廿五日", "廿六日", "廿七日", "廿八日", "廿九日", "三十日"];
+
+        const KAMA_ICON = `<svg viewBox="0 0 24 24" style="width:22px;height:22px;"><defs><linearGradient id="kg" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#eee"/><stop offset="100%" style="stop-color:#aaa"/></linearGradient></defs><path d="M10 20 L10 11 M10 11 Q19 8 16 16" fill="transparent" stroke="#333" stroke-width="2"/><path d="M10 11 Q17 9 15 15" fill="#ccc" stroke="none"/><rect x="9" y="16" width="2" height="5" fill="#5d4037"/></svg>`;
+        const DAIKON_ICON = `<svg viewBox="0 0 24 24" style="width:28px;height:28px;vertical-align:-4px;"><defs><linearGradient id="dk1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#e0e0e0"/></linearGradient><linearGradient id="dk2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4caf50"/><stop offset="100%" stop-color="#2e7d32"/></linearGradient></defs><path d="M12 21 C15 18 16 12 16 8 C16 4 8 4 8 8 C8 12 9 18 12 21 Z" fill="url(#dk1)"/><path d="M13 1 C9 1 10 7 13 8 C16 7 17 1 13 1 Z" fill="url(#dk2)"/><path d="M9 2 C6 2 7 8 10 9 C13 8 13 2 9 2 Z" fill="url(#dk2)"/><path d="M16 3 C13 3 13 8 15 9 C18 8 19 3 16 3 Z" fill="url(#dk2)"/><path d="M12 21 C15 18 16 12 16 8 C16 4 8 4 8 8 C8 12 9 18 12 21 Z" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/></svg>`;
+        const LETTUCE_ICON = `<svg viewBox="0 0 24 24" style="width:28px;height:28px;vertical-align:-4px;"><path d="M 12 22 Q 4 22 3 16 Q 1 11 3 8 Q 5 2 12 3 Q 19 2 21 8 Q 23 11 21 16 Q 20 22 12 22 Z" fill="#8bc34a"/><path d="M 12 21 Q 5 21 4 15 Q 3 11 5 8 Q 8 3 12 4 Q 16 3 19 8 Q 21 11 20 15 Q 19 21 12 21 Z" fill="#aed581"/><path d="M 12 20 Q 6 20 6 15 Q 5 12 7 9 Q 9 5 12 6 Q 15 5 17 9 Q 19 12 18 15 Q 18 20 12 20 Z" fill="#c5e1a5"/><path d="M 12 20 L 12 12 M 12 16 L 8 12 M 12 15 L 16 11 M 12 12 Q 10 9 11 6 M 12 12 Q 14 9 13 6" fill="none" stroke="#f1f8e9" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+        const KABOCHA_ICON = `<svg viewBox="0 0 24 24" style="width:28px;height:28px;vertical-align:-4px;"><defs><radialGradient id="kg1" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#2e7d32"/><stop offset="100%" stop-color="#145A32"/></radialGradient></defs><path d="M 10 6 L 10 2 L 14 2 L 13 6 Z" fill="#5D4037" stroke="#3E2723" stroke-width="1" stroke-linejoin="round"/><path d="M 12 6 C 0 6 -2 20 12 21 Z" fill="url(#kg1)" stroke="#003300" stroke-width="1"/><path d="M 12 6 C 24 6 26 20 12 21 Z" fill="url(#kg1)" stroke="#003300" stroke-width="1"/><path d="M 12 6 C 4 6 2 21 12 22 Z" fill="url(#kg1)" stroke="#003300" stroke-width="1"/><path d="M 12 6 C 20 6 22 21 12 22 Z" fill="url(#kg1)" stroke="#003300" stroke-width="1"/><path d="M 12 6 C 8 6 8 22 12 23 C 16 22 16 6 12 6 Z" fill="url(#kg1)" stroke="#003300" stroke-width="1"/><path d="M 12 6 C 5 6 3 21 12 22" fill="none" stroke="#66bb6a" stroke-width="0.8" stroke-dasharray="1 2"/><path d="M 12 6 C 19 6 21 21 12 22" fill="none" stroke="#66bb6a" stroke-width="0.8" stroke-dasharray="1 2"/><path d="M 12 6 C 8 6 8 22 12 22.5" fill="none" stroke="#66bb6a" stroke-width="0.8" stroke-dasharray="1 2"/><path d="M 12 6 C 16 6 16 22 12 22.5" fill="none" stroke="#66bb6a" stroke-width="0.8" stroke-dasharray="1 2"/></svg>`;
+        const KOMATSUNA_ICON = `<svg viewBox="0 0 24 24" style="width:28px;height:28px;vertical-align:-4px;"><defs><linearGradient id="km1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#66bb6a"/><stop offset="100%" stop-color="#2e7d32"/></linearGradient></defs><path d="M8 2 C2 2 2 12 8 16 L11 23 L11 16 Z" fill="url(#km1)"/><path d="M16 2 C22 2 22 12 16 16 L13 23 L13 16 Z" fill="url(#km1)"/><path d="M12 1 C6 1 6 13 12 17 L12 23 L12 17 Z" fill="url(#km1)"/><path d="M12 2 L12 23 M8 6 L10 16 M16 6 L14 16" stroke="#c8e6c9" stroke-width="1" fill="none" stroke-linecap="round"/></svg>`;
+        const SPINACH_ICON = `<svg viewBox="0 0 24 24" style="width:28px;height:28px;vertical-align:-4px;"><defs><linearGradient id="spf" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#4caf50"/><stop offset="100%" stop-color="#1b5e20"/></linearGradient></defs><path d="M12 19 L8 9 M12 19 L16 9 M12 19 L12 7" stroke="#aed581" stroke-width="2" stroke-linecap="round"/><path d="M9 15 C 2 11 1 3 6 2 C 12 2 11 10 11 13 Z" fill="url(#spf)"/><path d="M15 15 C 22 11 23 3 18 2 C 12 2 13 10 13 13 Z" fill="url(#spf)"/><path d="M12 17 C 7 11 6 4 12 2 C 18 4 17 11 12 17 Z" fill="url(#spf)"/><path d="M10 18 L14 18 L13 22 L11 22 Z" fill="#e91e63"/><path d="M11 22 L13 22 L12 24 Z" fill="#c2185b"/></svg>`;
+        const HAKUSAI_ICON = `<svg viewBox="0 0 24 24" style="width:28px;height:28px;vertical-align:-4px;"><defs><linearGradient id="hk1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#aed581"/><stop offset="70%" stop-color="#f1f8e9"/><stop offset="100%" stop-color="#ffffff"/></linearGradient></defs><path d="M12 22 C5 22 4 15 4 10 C4 2 9 2 12 2 C15 2 20 2 20 10 C20 15 19 22 12 22 Z" fill="url(#hk1)"/><path d="M12 22 C5 22 4 15 4 10 C4 2 9 2 12 2 C15 2 20 2 20 10 C20 15 19 22 12 22 Z" fill="none" stroke="#dcedc8" stroke-width="1"/><path d="M12 22 L12 6" stroke="#ffffff" stroke-width="2" stroke-linecap="round"/><path d="M8 20 L8 8 M16 20 L16 8" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/><ellipse cx="10" cy="6" rx="3" ry="1.5" fill="#ffffff" opacity="0.6" transform="rotate(-20 10 6)"/></svg>`;
+        const MULCH_ICON = `<svg viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="M2 18 L22 18 L19 12 L5 12 Z" fill="#333" stroke="#666"/></svg>`;
+        const TUNNEL_ICON = `<svg viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="M4 18 Q4 8 12 8 Q20 8 20 18" fill="rgba(255,255,255,0.4)" stroke="#81d4fa" stroke-width="1.5"/><path d="M4 18 L20 18" stroke="#999" stroke-width="1"/><path d="M8 8 L8 18 M12 8 L12 18 M16 8 L16 18" fill="none" stroke="#ddd" stroke-width="0.5"/></svg>`;
+
+        function getLunarInfo(d) {
+            const refMoon = new Date(2026, 1, 17); // 2026/2/17が旧1/1
+            const age = ((d - refMoon) / 86400000 % 29.53 + 29.53) % 29.53;
+            const emojis = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
+            const emoji = emojis[Math.floor((age + 1.84) / 3.69) % 8] || "🌑";
+            let totalDays = Math.floor((d - refMoon) / 86400000);
+            let m, day;
+            if (totalDays < 0) {
+                let offset = Math.floor((d - new Date(2026, 0, 1)) / 86400000);
+                day = 12 + offset; m = 11;
+                if (day > 30) { m = 12; day -= 30; }
+                if (day <= 0) { m = 11; day += 30; }
+                return `<div style="height:10px;">${emoji}${age.toFixed(1)}</div><div style="font-size:8px;color:#cc7a00;margin-top:1px;">${KANJI_M[m]}${KANJI_D[Math.max(1, Math.min(30, day))]}</div>`;
+            }
+            m = 1; let tempDays = totalDays;
+            while (tempDays >= 29) {
+                let monthLen = (m % 2 === 1) ? 30 : 29;
+                if (tempDays < monthLen) break;
+                tempDays -= monthLen; m++;
+            }
+            let monthIdx = ((m - 1) % 12) + 1;
+            let dayIdx = Math.min(30, tempDays + 1);
+            return `<div style="height:10px;">${emoji}${age.toFixed(1)}</div><div style="font-size:8px;color:#cc7a00;margin-top:1px;">${KANJI_M[monthIdx]}${KANJI_D[dayIdx]}</div>`;
+        }
+
+        const DEFAULT_MASTER = {
+            crops: [
+                { id: 'c1', name: 'トマト', icon: '🍅' }, { id: 'c2', name: 'キュウリ', icon: '🥒' }, { id: 'c3', name: 'ナス', icon: '🍆' }, { id: 'c4', name: 'ピーマン', icon: '🫑' }, { id: 'c5', name: 'キャベツ', icon: '🥬' },
+                { id: 'c6', name: '玉ねぎ', icon: '🧅' }, { id: 'c7', name: '人参', icon: '🥕' }, { id: 'c8', name: 'じゃがいも', icon: '🥔' }, { id: 'c9', name: '大根', icon: DAIKON_ICON }, { id: 'c10', name: 'イチゴ', icon: '🍓' },
+                { id: 'c11', name: 'トウモロコシ', icon: '🌽' }, { id: 'c12', name: '枝豆', icon: '🫛' }, { id: 'c13', name: 'レタス', icon: LETTUCE_ICON }, { id: 'c14', name: 'カボチャ', icon: KABOCHA_ICON }, { id: 'c15', name: 'スイカ', icon: '🍉' },
+                { id: 'c16', name: 'サツマイモ', icon: '🍠' }, { id: 'c17', name: '里芋', icon: '🥔' }, { id: 'c18', name: '小松菜', icon: KOMATSUNA_ICON }, { id: 'c19', name: 'ほうれん草', icon: SPINACH_ICON }, { id: 'c20', name: '白菜', icon: HAKUSAI_ICON }
+            ],
+            works: [
+                { id: 'w1', name: '播種', icon: '🌱' }, { id: 'w2', name: '定植', icon: '🪴' }, { id: 'w3', name: '潅水', icon: '💧' }, { id: 'w4', name: '除草', icon: KAMA_ICON },
+                { id: 'w5', name: '追肥', icon: '💊' }, { id: 'w6', name: '収穫開始', icon: '🧺' }, { id: 'w7', name: '収穫終了', icon: '🏁' }, { id: 'w8', name: '片付け', icon: '🚮' },
+                { id: 'w9', name: 'マルチ', icon: MULCH_ICON }, { id: 'w10', name: 'トンネル', icon: TUNNEL_ICON }, { id: 'w11', name: '被覆', icon: '🧤' }, { id: 'w12', name: '整枝', icon: '✂️' }
+            ]
+        };
+
+        let state = {
+            fields: [{ id: 'f1', name: 'マイ圃場', area: '', note: '' }],
+            plantings: [],
+            zoom: 1,
+            compare: false,
+            frost: true, // 霜注意報のON/OFF
+            master: JSON.parse(JSON.stringify(DEFAULT_MASTER)),
+            location: { name: '東京都千代田区', lat: 35.68, lon: 139.75 },
+            weather: {}, // 2026年予報: 日付 -> { code, max, min }
+            histWeather: {} // 2025年実績: 日付 -> { max, min }
+        };
+
+        let lastTap = 0, editTarget = null;
+
+        function init() {
+            const saved = localStorage.getItem(DB_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (!parsed.master) parsed.master = state.master;
+                if (!parsed.location) parsed.location = state.location;
+                if (!parsed.weather) parsed.weather = {};
+                if (!parsed.histWeather) parsed.histWeather = {};
+                if (parsed.frost === undefined) parsed.frost = true;
+                state = parsed;
+            }
+            renderUI(); setupInteractions(); setupDragScroll();
+            // PC↔スマホ切替時はスクロール位置を当日に戻す、それ以外は位置を保持
+            let _prevIsPC = window.innerWidth > 768;
+            window.addEventListener('resize', () => {
+                const _nowIsPC = window.innerWidth > 768;
+                const _modeChanged = (_nowIsPC !== _prevIsPC);
+                _prevIsPC = _nowIsPC;
+                renderUI();
+                if (_modeChanged) {
+                    requestAnimationFrame(() => requestAnimationFrame(scrollToToday));
+                }
+            });
+            window.onbeforeprint = buildPrintLayout;
+            fetchWeather();
+            // DOMレイアウト確定後に今日へスクロール
+            requestAnimationFrame(() => requestAnimationFrame(scrollToToday));
+        }
+
+        function toggleZoom() {
+            state.zoom = (state.zoom === 1) ? 0.05 : 1;
+            // 全体表示に切り替えた際、スマホなら邪魔にならないようパレットを自動で畳む
+            if (state.zoom < 0.5 && window.innerWidth <= 768) {
+                const pal = document.getElementById('palette');
+                if (pal) pal.classList.add('collapsed');
+            }
+            renderUI();
+        }
+
+
+        /* ===== Free版：アップグレードプロンプト ===== */
+        function showUpgradePrompt(featureName) {
+            document.getElementById('m-title').innerText = '🔒 Pro版限定機能';
+            document.getElementById('m-content').innerHTML =
+                '<div style="text-align:center; padding:10px 0;">' +
+                '<div style="font-size:52px; margin-bottom:12px;">🚀</div>' +
+                '<p style="font-size:15px; font-weight:bold; color:#2e7d32; margin-bottom:8px;">' + featureName + '</p>' +
+                '<p style="font-size:13px; color:#555; line-height:1.7; margin-bottom:16px;">' +
+                'この機能は <strong>HarvestSuite スケジュール Pro</strong> でご利用いただけます。<br>' +
+                'Pro版では全機能が無制限に使用できます。' +
+                '</p>' +
+                '<div style="background:#f9fbe7; border:1px solid #c5e1a5; border-radius:12px; padding:14px; margin-bottom:16px; text-align:left;">' +
+                '<p style="font-size:12px; font-weight:bold; color:#558b2f; margin-bottom:8px;">✅ Pro版でできること</p>' +
+                '<p style="font-size:12px; color:#555; line-height:1.8;">・圃場数：無制限<br>・作物配置：無制限<br>・前年比較表示<br>・GPS位置情報取得<br>・カスタム作業タイプ追加<br>・A4印刷（全圃場対応）</p>' +
+                '</div>' +
+                '<a href="https://arayanoen-site.pages.dev/" target="_blank" style="display:block; background:#2e7d32; color:white; text-decoration:none; padding:14px; border-radius:12px; font-size:14px; font-weight:bold; margin-bottom:8px;">🛒 Pro版を購入する</a>' +
+                '<button onclick="document.getElementById(\'masterModal\').style.display=\'none\';" style="width:100%; padding:10px; background:#eee; border:none; border-radius:12px; font-size:13px; cursor:pointer; color:#555;">閉じる</button>' +
+                '</div>';
+            document.getElementById('masterModal').style.display = 'flex';
+        }
+
+        /* ===== Free版：制限チェック ===== */
+        function freeCheckPlannings(fieldId) {
+            if (!IS_FREE) return true;
+            const currentCount = state.plantings.length;
+            if (currentCount >= FREE_MAX_PLANTINGS) {
+                showUpgradePrompt('作物配置（無制限）');
+                return false;
+            }
+            return true;
+        }
+        function freeCheckFields() {
+            if (!IS_FREE) return true;
+            if (state.fields.length >= FREE_MAX_FIELDS) {
+                showUpgradePrompt('圃場の追加（無制限）');
+                return false;
+            }
+            return true;
+        }
+
+        function togglePalette() {
+            const pal = document.getElementById('palette');
+            if (pal) pal.classList.toggle('collapsed');
+        }
+        function toggleCompare() { state.compare = !state.compare; document.getElementById('btnCompare').classList.toggle('active', state.compare); renderUI(); }
+        function toggleFrost() { state.frost = !state.frost; document.getElementById('btnFrost').classList.toggle('active', state.frost); renderUI(); }
+
+        function renderCalendar(isPC, ds) {
+            const axis = document.getElementById('axisFixed'), grid = document.getElementById('gridScroll');
+            const totalDays = 365; // 2026年は365日
+            const base = new Date(2026, 0, 1);
+            const isSmall = ds < 10;
+            const totalW = (totalDays * ds);
+
+            // クラスでPC/Mobileを切り替え
+            [axis, grid].forEach(el => {
+                if (el) {
+                    el.classList.toggle('is-pc', isPC);
+                    el.classList.toggle('is-mobile', !isPC);
+                }
+            });
+
+            let axContent = '';
+            for (let i = 0; i < totalDays; i++) {
+                const d = new Date(base); d.setDate(base.getDate() + i);
+                const dsStr = formatDate(d);
+                const mmdd = ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+                const wData = state.weather[dsStr];
+                const age = ((d - new Date(2026, 1, 17)) / 86400000 % 29.53 + 29.53) % 29.53;
+                const tide = (Math.floor(age) + 1 === 1 || Math.floor(age) + 1 === 15) ? "大潮" : "中潮";
+
+                // --- 当年の天気（実績：昨日まで ＋ 予報：今日から1週間分のみ） ---
+                const diffToToday = Math.floor((d.setHours(0, 0, 0, 0) - (new Date()).setHours(0, 0, 0, 0)) / 86400000);
+                let curIcon = '';
+                let tempHtml = '';
+                // 予報1週間分(diffToToday <= 7) かつ wDataが存在する場合（実績もここに含まれるように取得設定）
+                if (diffToToday <= 7 && wData) {
+                    curIcon = WMO_MAP[wData?.code] || '';
+                    tempHtml = `<div class="day-temp"><span class="t-max">${Math.round(wData.max)}°</span><span class="t-min">${Math.round(wData.min)}°</span></div>`;
+                }
+
+                // --- 前年比較（ボタンONの時のみ表示） ---
+                let histHtml = '';
+                if (state.compare && !isSmall) {
+                    const histD = new Date(d); histD.setFullYear(2025);
+                    const histDsStr = formatDate(histD);
+                    const hData = state.histWeather[histDsStr];
+                    if (hData) {
+                        const hIcon = WMO_MAP[hData.code] || '';
+                        histHtml = `
+                            <div class="hist-icon" style="font-size:12px; height:12px; margin-top:1px;">${hIcon}</div>
+                            <div class="hist-temp" style="font-size:8px; line-height:10px;">前:${Math.round(hData.max)}/${Math.round(hData.min)}</div>
+                        `;
+                    }
+                }
+
+                // 霜注意報の判定（当日・予報期間のみ有効、かつ3度未満、かつスイッチON）
+                const isFrost = state.frost && (diffToToday >= 0 && diffToToday <= 7) && (wData?.min < 3);
+
+                let cellClass = `day-cell ${d.getDate() === 1 ? 'month-sep' : ''} ${isSmall ? 'small-view' : ''} ${isFrost ? 'frost-active' : ''}`;
+                let cellStyle = isPC ? `min-width:${ds}px; width:${ds}px; gap:1px; height:150px;` : `height:${ds}px; min-height:${ds}px; width:100px;`;
+
+                axContent += `<div class="${cellClass}" style="${cellStyle} flex-shrink:0;">
+                    <div class="day-weather">${curIcon}</div>
+                    <div class="day-num" style="color: ${d.getDay() === 0 ? '#d32f2f' : d.getDay() === 6 ? '#1976d2' : '#333'}">${d.getDate() === 1 ? (d.getMonth() + 1) + '月' : (isSmall ? '' : d.getDate())}</div>
+                    ${isSmall ? '' : tempHtml}
+                    ${isSmall ? '' : histHtml}
+                    <div class="day-term" style="font-size:7px; height:9px;">${SOLAR_TERMS[mmdd] || ''}</div>
+                    <div class="day-micro" style="font-size:6px; height:8px;">${MICRO_SEASONS[mmdd] || ''}</div>
+                    <div class="day-tide" style="font-size:6px; height:8px;">${tide}</div>
+                    <div class="day-lunar">${getLunarInfo(d)}</div>
+                </div>`;
+            }
+            if (isPC) {
+                axis.innerHTML = `<div style="display:flex; width:${totalW}px; flex-shrink:0;">${axContent}</div><div style="min-width:100px; width:100px; flex-shrink:0;"></div>`;
+            } else {
+                const totalH = totalDays * ds;
+                axis.innerHTML = `<div style="display:flex; flex-direction:column; height:${totalH}px; flex-shrink:0;">${axContent}</div><div style="min-height:100px; height:100px; flex-shrink:0;"></div>`;
+            }
+            grid.innerHTML = state.fields.map(f => {
+                const totalGridW = totalW + 100; // バッファを100pxに統一
+                const layerStyle = isPC ? `min-width:${totalGridW}px; width:${totalGridW}px;` : `min-height:${totalDays * ds}px; height:${totalDays * ds}px;`;
+                return `<div class="field-col" style="${isPC ? 'width:' + (totalGridW + 140) + 'px' : ''}">
+                    <div class="field-header" style="width:${isPC ? 140 : 100}px;">${f.name}</div>
+                    <div class="data-layer" data-field-id="${f.id}" style="${layerStyle} flex-shrink:0;"></div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderPlantings(isPC, ds) {
+            const base = new Date(2026, 0, 1);
+
+            // 圃場ごとに作付けをグループ分けしてレーン計算
+            const fieldMap = {};
+            state.plantings.forEach(p => {
+                if (!fieldMap[p.fieldId]) fieldMap[p.fieldId] = [];
+                fieldMap[p.fieldId].push(p);
+            });
+
+            state.fields.forEach(f => {
+                const layer = document.querySelector(`[data-field-id="${f.id}"]`);
+                if (!layer) return;
+
+                const fPlantings = fieldMap[f.id] || [];
+                // 開始日順にソート
+                fPlantings.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+                const lanes = [];
+                const _laneBase = new Date(2026, 0, 1);
+                fPlantings.forEach(p => {
+                    // 前年からの繰り越しは1月1日を実効開始日としてレーン重複を判定
+                    const _effectiveStart = new Date(Math.max(new Date(p.start).getTime(), _laneBase.getTime()));
+                    let assignedLane = -1;
+                    for (let i = 0; i < lanes.length; i++) {
+                        if (_effectiveStart > lanes[i]) {
+                            assignedLane = i;
+                            break;
+                        }
+                    }
+                    if (assignedLane === -1) {
+                        assignedLane = lanes.length;
+                        lanes.push(new Date(p.end));
+                    } else {
+                        lanes[assignedLane] = new Date(p.end);
+                    }
+                    p.laneIndex = assignedLane;
+                });
+
+                // レーン数に応じて圃場の高さを調整
+                const laneSize = 35;
+                const totalSize = Math.max(100, (lanes.length * laneSize) + 20);
+                const col = layer.closest('.field-col');
+                const header = col.querySelector('.field-header');
+                if (isPC) {
+                    col.style.height = totalSize + 'px';
+                    header.style.height = totalSize + 'px';
+                } else {
+                    col.style.minWidth = totalSize + 'px';
+                    header.style.width = totalSize + 'px';
+                }
+
+                fPlantings.forEach(p => {
+                    const crop = state.master.crops.find(c => c.id === p.cropId);
+                    if (!crop) return;
+
+                    const base = new Date(2026, 0, 1);
+                    const sIdx = diffDays(base, new Date(p.start)), eIdx = diffDays(base, new Date(p.end));
+
+                    // 表示範囲外は完全にスキップ
+                    if (eIdx < 0 || sIdx > 365) return;
+
+                    // 前年からの繰り越しかどうか判定
+                    const isCarryover = sIdx < 0;
+                    const clampedSIdx = Math.max(0, sIdx);
+
+                    const bar = document.createElement('div');
+                    bar.className = isCarryover ? 'p-bar p-carryover' : 'p-bar';
+                    // ダブルクリックで編集パネルを開く（ネイティブイベント）
+                    (function(_pid) {
+                        bar.addEventListener('dblclick', function(e) { e.stopPropagation(); openPnl('p', _pid); });
+                    })(p.id);
+
+                    const pos = clampedSIdx * ds;
+                    const len = (eIdx - clampedSIdx + 1) * ds;
+                    const offset = (p.laneIndex * laneSize) + 10;
+
+                    if (isPC) {
+                        bar.style.left = pos + 'px';
+                        bar.style.width = len + 'px';
+                        bar.style.top = offset + 'px';
+                        bar.style.height = (laneSize - 5) + 'px';
+                    }
+                    else {
+                        bar.style.top = pos + 'px';
+                        bar.style.height = len + 'px';
+                        bar.style.left = offset + 'px';
+                        bar.style.width = (laneSize - 5) + 'px';
+                    }
+
+                    let h = `<div class="p-bar-line" data-pid="${p.id}" style="${isPC ? 'top:50%;height:8px' : 'left:50%;width:8px'}"></div>`;
+                    h += `<div class="p-resize-handle" data-pid="${p.id}"></div>`;
+
+                    // アイコン描画
+                    let iconStyle = "";
+                    let isSvg = crop.icon && crop.icon.startsWith('<svg');
+                    if (crop.icon.length > 2 && !isSvg) iconStyle = `background-image:url(${crop.icon}); font-size:0;`;
+                    h += `<div class="p-icon" data-pid="${p.id}" style="${isPC ? 'left:0;top:50%' : 'top:0;left:50%'}; ${iconStyle}">${isSvg ? crop.icon : (crop.icon.length <= 2 ? crop.icon : '')}</div>`;
+
+                    if (p.hStart) {
+                        const hsIdx = diffDays(base, new Date(p.hStart));
+                        let heIdx = p.hEnd ? diffDays(base, new Date(p.hEnd)) : eIdx;
+                        // クランプ後バー左端からのオフセットで計算
+                        const hPos = (hsIdx - clampedSIdx) * ds, hLen = (heIdx - hsIdx + 1) * ds;
+                        if (isPC) h += `<div class="p-harvest ${!p.hEnd ? 'tbd' : ''}" style="left:${hPos}px; width:${Math.max(ds, hLen)}px;"></div>`;
+                        else h += `<div class="p-harvest ${!p.hEnd ? 'tbd' : ''}" style="top:${hPos}px; height:${Math.max(ds, hLen)}px;"></div>`;
+                    }
+                    // data-layerに直接追加するラベルを収集
+                    const evLabels = [];
+
+                    if (p.events) p.events.forEach((ev, idx) => {
+                        const m = state.master.works.find(x => x.id === ev.type);
+                        if (!m) return;
+
+                        const evDate = new Date(ev.date);
+                        const dLabel = (evDate.getMonth() + 1) + '/' + evDate.getDate();
+                        const isWCarryover = diffDays(base, evDate) < 0;
+                        const evColor = ev.color || defaultWorkColor(ev.type);
+                        const carryoverCls = isWCarryover ? ' work-carryover' : '';
+                        const cMark = isWCarryover ? '◀ ' : '';
+
+                        if (ev.isSpan || ev.endDate) {
+                            const wSIdx = diffDays(base, evDate);
+                            const clampedWSIdx = Math.max(0, wSIdx);
+                            const wPos = (clampedWSIdx - clampedSIdx) * ds;
+
+                            if (ev.endDate) {
+                                // 終了日あり → ソリッドな帯
+                                const wEIdx = diffDays(base, new Date(ev.endDate));
+                                const wLen = (wEIdx - clampedWSIdx + 1) * ds;
+                                const endLabel = (new Date(ev.endDate).getMonth() + 1) + '/' + new Date(ev.endDate).getDate();
+                                const spanLabel = cMark + dLabel + '〜' + endLabel;
+                                if (isPC) {
+                                    h += `<div class="p-work-band${carryoverCls}" data-wtype="${ev.type}" data-pid="${p.id}" data-idx="${idx}" style="left:${wPos}px;width:${wLen}px;background:${evColor};"></div>`;
+                                    // ラベル：data-layer 上で バー上辺より上
+                                    evLabels.push({ text: spanLabel, lx: pos + wPos, ly: offset - 14, tx: pos + wPos, ty: pos + wPos });
+                                } else {
+                                    h += `<div class="p-work-band${carryoverCls}" data-wtype="${ev.type}" data-pid="${p.id}" data-idx="${idx}" style="top:${wPos}px;height:${wLen}px;background:${evColor};"></div>`;
+                                    evLabels.push({ text: spanLabel, lx: offset - 14, ly: pos + wPos, tx: pos + wPos, ty: pos + wPos });
+                                }
+                            } else {
+                                // 終了未定 → グラデーション
+                                const wLen = (eIdx - clampedWSIdx + 1) * ds;
+                                const rgba0 = hexToRgba(evColor, 0);
+                                const gradPC  = `linear-gradient(to right, ${evColor} 0%, ${rgba0} 100%)`;
+                                const gradMob = `linear-gradient(to bottom, ${evColor} 0%, ${rgba0} 100%)`;
+                                const clipPC  = `polygon(0% 0%, 100% 35%, 100% 65%, 0% 100%)`;
+                                const clipMob = `polygon(0% 0%, 100% 0%, 75% 100%, 25% 100%)`;
+                                const startLabel = cMark + dLabel + '〜';
+                                if (isPC) {
+                                    h += `<div class="p-work-band tbd${carryoverCls}" data-wtype="${ev.type}" data-pid="${p.id}" data-idx="${idx}" style="left:${wPos}px;width:${wLen}px;background:${gradPC};clip-path:${clipPC};"></div>`;
+                                    evLabels.push({ text: startLabel, lx: pos + wPos, ly: offset - 14, tx: pos + wPos, ty: pos + wPos });
+                                } else {
+                                    h += `<div class="p-work-band tbd${carryoverCls}" data-wtype="${ev.type}" data-pid="${p.id}" data-idx="${idx}" style="top:${wPos}px;height:${wLen}px;background:${gradMob};clip-path:${clipMob};"></div>`;
+                                    evLabels.push({ text: startLabel, lx: offset - 14, ly: pos + wPos, tx: pos + wPos, ty: pos + wPos });
+                                }
+                            }
+                        } else {
+                            // 単発作業 → アイコン円
+                            const ep = (diffDays(new Date(p.start), evDate) + (sIdx - clampedSIdx)) * ds + (ds / 2);
+                            let markIconStyle = `border-color:${evColor};`;
+                            let isMSvg = m.icon && m.icon.startsWith('<svg');
+                            if (m.icon && m.icon.length > 2 && !isMSvg) markIconStyle += `background-image:url(${m.icon}); font-size:0;`;
+                            h += `<div class="p-mark" data-pid="${p.id}" data-idx="${idx}" style="${isPC ? 'left:' + ep + 'px;top:50%' : 'top:' + ep + 'px;left:50%'}; ${markIconStyle}">${isMSvg ? m.icon : (m.icon && m.icon.length <= 2 ? m.icon : '')}</div>`;
+                            // ラベル：data-layer 上でバーの上辺より上
+                            if (isPC) evLabels.push({ text: cMark + dLabel, lx: pos + ep - 10, ly: offset - 14, tx: 0, ty: 0 });
+                            else      evLabels.push({ text: cMark + dLabel, lx: offset - 14, ly: pos + ep - 10, tx: 0, ty: 0 });
+                        }
+                    });
+                    bar.innerHTML = h;
+
+                    // p-mark / p-work-band にダブルクリックで作業編集パネルを開く
+                    bar.querySelectorAll('.p-mark, .p-work-band').forEach(function(mk) {
+                        mk.addEventListener('dblclick', function(e) {
+                            e.stopPropagation();
+                            openPnl('m', mk.dataset.pid, mk.dataset.idx);
+                        });
+                    });
+
+                    // 前年繰り越しラベル (◀ 開始月/日〜) をバー先頭に追加
+                    if (isCarryover) {
+                        const _origStart = new Date(p.start);
+                        const _label = document.createElement('div');
+                        _label.className = `p-carryover-label ${isPC ? 'pc-label' : 'mob-label'}`;
+                        _label.textContent = `◀ ${_origStart.getMonth() + 1}/${_origStart.getDate()}〜`;
+                        bar.appendChild(_label);
+                    }
+
+                    layer.appendChild(bar);
+
+                    // 日付ラベルをdata-layer直下に追加（バーの外・上側）
+                    evLabels.forEach(function(lbl) {
+                        const el = document.createElement('div');
+                        el.className = 'p-mark-label';
+                        el.textContent = lbl.text;
+                        el.style.position = 'absolute';
+                        el.style.left = Math.max(0, lbl.lx) + 'px';
+                        el.style.top  = Math.max(0, lbl.ly) + 'px';
+                        el.style.zIndex = '200';
+                        layer.appendChild(el);
+                    });
+                });
+            });
+
+            // 前年比較 (実績があれば表示)
+            if (state.compare) state.plantings.forEach(p => {
+                const layer = document.querySelector(`[data-field-id="${p.fieldId}"]`);
+                if (!layer) return;
+
+                // 1年後の日付を計算して現在のカレンダー位置に投影
+                const dStart = new Date(p.start); dStart.setFullYear(dStart.getFullYear() + 1);
+                const dEnd = new Date(p.end); dEnd.setFullYear(dEnd.getFullYear() + 1);
+
+                const sIdx = diffDays(base, dStart), eIdx = diffDays(base, dEnd);
+                // 表示範囲外ならスキップ (おおよそ半年〜1年の差分があるものだけ表示)
+                if (eIdx < 0 || sIdx > 366) return;
+
+                const cBar = document.createElement('div'); cBar.className = 'p-bar';
+                cBar.style.opacity = '0.3'; cBar.style.pointerEvents = 'none'; // 比較用は触らせない
+                const pos = sIdx * ds, len = (eIdx - sIdx + 1) * ds;
+
+                const laneSize = 35;
+                const offset = ((p.laneIndex || 0) * laneSize) + 10;
+
+                if (isPC) { cBar.style.left = pos + 'px'; cBar.style.width = len + 'px'; cBar.style.top = offset + 'px'; cBar.style.height = (laneSize - 5) + 'px'; }
+                else { cBar.style.top = pos + 'px'; cBar.style.height = len + 'px'; cBar.style.left = offset + 'px'; cBar.style.width = (laneSize - 5) + 'px'; }
+
+                // アイコン取得
+                const crop = state.master.crops.find(c => c.id === p.cropId);
+                let iconHtml = '';
+                if (crop) {
+                    let iconStyle = "";
+                    let isSvg = crop.icon && crop.icon.startsWith('<svg');
+                    if (crop.icon.length > 2 && !isSvg) iconStyle = `background-image:url(${crop.icon}); font-size:0;`;
+                    iconHtml = `<div class="p-icon" style="${isPC ? 'left:0;top:50%' : 'top:0;left:50%'}; ${iconStyle}">${isSvg ? crop.icon : (crop.icon.length <= 2 ? crop.icon : '')}</div>`;
+                }
+
+                cBar.innerHTML = `<div class="p-bar-line" style="${isPC ? 'top:50%;height:8px;background:#ccc' : 'left:50%;width:8px;background:#ccc'}"></div>${iconHtml}`;
+                layer.appendChild(cBar);
+            });
+        }
+
+        function renderUI() {
+            const isPC = window.innerWidth > 768;
+            const appMain = document.querySelector('.app-main');
+            const axis = document.getElementById('axisFixed');
+            const grid = document.getElementById('gridScroll');
+            if (!appMain || !axis || !grid) return;
+
+            let ds;
+            if (state.zoom < 0.5) {
+                // 全体表示: 366日をフィットさせる
+                if (isPC) {
+                    const avail = window.innerWidth - 140; // ヘッダー幅を考慮
+                    ds = avail / 367;
+                } else {
+                    const avail = appMain.clientHeight || window.innerHeight - 60;
+                    ds = (avail - 40) / 365;
+                }
+            } else {
+                ds = (isPC ? 60 : 110) * state.zoom; // PCは60px / Mobileは全項目が入る110px基準
+            }
+
+            renderCalendar(isPC, ds); renderPalette(); renderPlantings(isPC, ds);
+
+            if (isPC) {
+                // PC版: モバイル残留スタイルを完全リセットしてから設定
+                axis.scrollTop = 0;           // モバイルで残った縦スクロール位置をリセット
+                axis.style.overflow = '';     // モバイルの overflow:hidden 残留を消去
+                axis.style.overflowX = 'scroll';
+                axis.style.overflowY = 'hidden';
+                axis.style.width = '100%';
+                axis.style.height = '140px';
+                grid.style.overflowX = 'scroll';
+                grid.onscroll = () => { axis.scrollLeft = grid.scrollLeft; };
+                axis.onscroll = () => { grid.scrollLeft = axis.scrollLeft; };
+            } else {
+                // モバイル版: PC残留スタイルをリセットしてから設定
+                axis.scrollLeft = 0;          // PCで残った横スクロール位置をリセット
+                axis.style.overflow = '';     // リセット
+                axis.style.overflowX = 'hidden'; // スクロールバー非表示
+                axis.style.overflowY = 'hidden'; // scrollTop同期のため非表示
+                axis.style.width = '100px';
+                axis.style.height = '100%';
+                grid.onscroll = () => { axis.scrollTop = grid.scrollTop; };
+            }
+            const btnZoom = document.getElementById('btnZoom');
+            if (btnZoom) btnZoom.innerText = (state.zoom < 0.5) ? '🔍 通常表示' : '🔍 全体表示';
+            const btnFrost = document.getElementById('btnFrost');
+            if (btnFrost) btnFrost.classList.toggle('active', state.frost);
+            // Free版ステータスバー更新
+            if (IS_FREE) {
+                const st = document.getElementById('free-status-text');
+                if (st) st.textContent = `Free版：作物配置 ${state.plantings.length}/3 | 圃場 ${state.fields.length}/1`;
+            }
+        }
+
+        function renderPalette() {
+            const cropHtml = state.master.crops.map(c => {
+                let style = "";
+                let content = c.icon.length <= 2 ? c.icon : '';
+                if (c.icon && c.icon.startsWith('<svg')) {
+                    content = c.icon;
+                } else if (c.icon.length > 2) {
+                    style = `background-image:url(${c.icon}); font-size:0; border-radius:50%; background-size:contain; background-repeat:no-repeat; background-position:center; width:34px; height:34px; background-color:white; border:2px solid #eee;`;
+                }
+                return `<div class="p-btn" data-type="crop" data-id="${c.id}"><div style="${style}">${content}</div><span>${c.name}</span></div>`;
+            }).join('');
+            document.getElementById('p-crops').innerHTML = cropHtml;
+
+            const workHtml = state.master.works.map(w => {
+                let style = "";
+                let content = (w.icon && w.icon.length <= 2) ? w.icon : '';
+                if (w.icon && w.icon.startsWith('<svg')) {
+                    content = w.icon;
+                } else if (w.icon && w.icon.length > 2) {
+                    style = `background-image:url(${w.icon}); font-size:0; border-radius:50%; background-size:contain; background-repeat:no-repeat; background-position:center; width:34px; height:34px; background-color:white; border:2px solid #eee;`;
+                }
+                return `<div class="p-btn" data-type="work" data-id="${w.id}"><div style="${style}">${content}</div><span>${w.name}</span></div>`;
+            }).join('');
+            document.getElementById('p-works').innerHTML = workHtml;
+        }
+
+        function setupInteractions() {
+            let ghost = null, active = null, currentType = '';
+            const start = (e) => {
+                const t = e.target.closest('.p-btn, .p-icon, .p-mark, .p-bar-line, .p-resize-handle, .p-work-band'); if (!t || t.classList.contains('p-mark-label') || t.style.opacity === '0.3') return;
+                active = t; currentType = t.dataset.type || (t.classList.contains('p-resize-handle') ? 'bar-resize' : (t.classList.contains('p-icon') || t.classList.contains('p-bar-line') ? 'bar-move' : 'mark-move'));
+                const now = Date.now(); if (now - lastTap < 350) {
+                    if (currentType === 'bar-move') openPnl('p', t.dataset.pid);
+                    else if (currentType === 'mark-move') openPnl('m', t.dataset.pid, t.dataset.idx);
+                    return;
+                } lastTap = now;
+                const touch = e.touches ? e.touches[0] : e;
+                ghost = t.cloneNode(true); ghost.className = 'ghost';
+                // アイコンの背景画像なども引き継ぐ
+                if (t.classList.contains('p-btn')) {
+                    const iconDiv = t.querySelector('div');
+                    if (iconDiv) {
+                        ghost.style.backgroundImage = iconDiv.style.backgroundImage;
+                        ghost.style.backgroundSize = "contain";
+                        if (iconDiv.style.backgroundImage) ghost.innerText = "";
+                    }
+                }
+                document.body.appendChild(ghost);
+                moveG(touch.clientX, touch.clientY); e.preventDefault();
+                document.body.style.userSelect = 'none';
+            };
+            const move = (e) => {
+                if (!ghost) return; const touch = e.touches ? e.touches[0] : e; moveG(touch.clientX, touch.clientY);
+                const over = document.elementFromPoint(touch.clientX, touch.clientY);
+                const layer = over ? over.closest('.data-layer') : null;
+                if (layer) {
+                    const rect = layer.getBoundingClientRect(); const isPC = window.innerWidth > 768;
+                    const offset = isPC ? (touch.clientX - rect.left) : (touch.clientY - rect.top);
+                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (appMain.clientHeight - 40) / 365) : (isPC ? 60 : 24) * state.zoom;
+                    const d = new Date(2026, 0, 1 + Math.floor(offset / currentDs));
+                    const tip = document.getElementById('dateTip'); tip.style.display = 'block'; tip.innerText = (d.getMonth() + 1) + '/' + d.getDate();
+                    tip.style.left = (touch.clientX + 15) + 'px'; tip.style.top = (touch.clientY - 40) + 'px';
+                }
+            };
+            const end = (e) => {
+                if (!ghost) return; const touch = e.changedTouches ? e.changedTouches[0] : e;
+                document.body.style.userSelect = '';
+                ghost.style.display = 'none';
+                const over = document.elementFromPoint(touch.clientX, touch.clientY);
+                const layer = over ? over.closest('.data-layer') : null;
+                let changed = false;
+                if (layer) {
+                    const rect = layer.getBoundingClientRect(); const isPC = window.innerWidth > 768;
+                    const offset = isPC ? (touch.clientX - rect.left) : (touch.clientY - rect.top);
+                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (appMain.clientHeight - 40) / 365) : (isPC ? 60 : 24) * state.zoom;
+                    changed = handleDrop(currentType, formatDate(new Date(2026, 0, 1 + Math.floor(offset / currentDs))), layer.dataset.fieldId, active);
+                }
+                document.querySelectorAll('.ghost').forEach(g => g.remove());
+                ghost = null; dateTip.style.display = 'none';
+                if (changed) renderUI();
+            };
+            const moveG = (x, y) => { if (ghost) { ghost.style.left = (x - 17) + 'px'; ghost.style.top = (y - 17) + 'px'; } };
+            document.addEventListener('touchstart', start, { passive: false }); document.addEventListener('touchmove', move, { passive: false }); document.addEventListener('touchend', end);
+            document.addEventListener('mousedown', start); document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
+        }
+
+        /* ===== 今日の日付へスクロール ===== */
+        function scrollToToday() {
+            const isPC = window.innerWidth > 768;
+            const grid = document.getElementById('gridScroll');
+            if (!grid) return;
+
+            const base = new Date(2026, 0, 1);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            // 2026年の範囲にクランプ
+            let todayIdx = Math.floor((today - base) / 86400000);
+            todayIdx = Math.max(0, Math.min(364, todayIdx));
+
+            // dsを再計算（renderUIと同じロジック）
+            const appMain = document.querySelector('.app-main');
+            let ds;
+            if (state.zoom < 0.5) {
+                if (isPC) ds = (window.innerWidth - 140) / 367;
+                else ds = (((appMain ? appMain.clientHeight : window.innerHeight - 60)) - 40) / 365;
+            } else {
+                ds = (isPC ? 60 : 110) * state.zoom;
+            }
+
+            if (isPC) {
+                // 今日を画面左から1/4の位置に表示
+                const offset = Math.max(0, todayIdx * ds - grid.clientWidth * 0.25);
+                grid.scrollLeft = offset;
+            } else {
+                // 今日を画面上から1/4の位置に表示
+                const offset = Math.max(0, todayIdx * ds - (appMain ? appMain.clientHeight : window.innerHeight) * 0.25);
+                grid.scrollTop = offset;
+            }
+        }
+
+        /* ===== ドラッグスクロール（マウス＋タッチ） ===== */
+        function setupDragScroll() {
+            const grid = document.getElementById('gridScroll');
+            if (!grid) return;
+
+            // インタラクティブ要素のセレクタ（作付けバー操作時はドラッグスクロール無効）
+            const INTERACTIVE = '.p-btn, .p-icon, .p-mark, .p-bar-line, .p-resize-handle, .p-work-band, .field-header';
+
+            // ----- マウスドラッグ（PC用） -----
+            let mouseDown = false, mStartX = 0, mStartY = 0, mScrollL = 0, mScrollT = 0;
+
+            grid.addEventListener('mousedown', (e) => {
+                if (e.target.closest(INTERACTIVE)) return;
+                mouseDown = true;
+                mStartX = e.clientX; mStartY = e.clientY;
+                mScrollL = grid.scrollLeft; mScrollT = grid.scrollTop;
+                grid.style.cursor = 'grabbing';
+                grid.style.userSelect = 'none';
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', (e) => {
+                if (!mouseDown) return;
+                grid.scrollLeft = mScrollL - (e.clientX - mStartX);
+                grid.scrollTop  = mScrollT - (e.clientY - mStartY);
+            });
+            document.addEventListener('mouseup', () => {
+                if (!mouseDown) return;
+                mouseDown = false;
+                grid.style.cursor = '';
+                grid.style.userSelect = '';
+            });
+
+            // ----- タッチドラッグ（モバイル補助：軸カレンダー側をドラッグしたとき） -----
+            // grid-scroll自体はnativeスクロールで動くが、axis-fixed側をドラッグしてもスクロールできるようにする
+            const axis = document.getElementById('axisFixed');
+            if (!axis) return;
+            let touchDown = false, tStartY = 0, tScrollT = 0;
+
+            axis.addEventListener('touchstart', (e) => {
+                if (e.target.closest(INTERACTIVE)) return;
+                touchDown = true;
+                tStartY = e.touches[0].clientY;
+                tScrollT = grid.scrollTop;
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!touchDown) return;
+                const dy = tStartY - e.touches[0].clientY;
+                grid.scrollTop = tScrollT + dy;
+            }, { passive: true });
+
+            document.addEventListener('touchend', () => { touchDown = false; });
+        }
+
+        function handleDrop(type, date, fieldId, target) {
+            let changed = false;
+            if (type === 'crop') {
+                if (!freeCheckPlannings(fieldId)) return false;
+                state.plantings.push({ id: 'p' + Date.now(), fieldId, cropId: target.dataset.id, start: date, end: formatDate(new Date(new Date(date).getTime() + 60 * 86400000)), events: [] });
+                changed = true;
+            } else if (type === 'work') {
+                const p = state.plantings.find(x => x.fieldId === fieldId && date >= x.start && date <= x.end);
+                if (p) { if (target.dataset.id === 'w6') p.hStart = date; else if (target.dataset.id === 'w7') p.hEnd = date; p.events.push({ type: target.dataset.id, date }); changed = true; }
+            } else if (type === 'bar-move') {
+                const p = state.plantings.find(x => x.id === target.dataset.pid);
+                if (p) {
+                    // 前年繰り越しバーは画面上の表示開始位置(Jan 1)を基準に移動量を計算する
+                    const _base = new Date(2026, 0, 1);
+                    const _visualStart = new Date(Math.max(new Date(p.start).getTime(), _base.getTime()));
+                    const dDays = diffDays(_visualStart, new Date(date));
+                    if (dDays !== 0) {
+                        const moveD = (s) => { if (!s) return null; let nd = new Date(s); nd.setDate(nd.getDate() + dDays); return formatDate(nd); };
+                        p.start = moveD(p.start); p.end = moveD(p.end); if (p.hStart) p.hStart = moveD(p.hStart); if (p.hEnd) p.hEnd = moveD(p.hEnd);
+                        if (p.events) p.events.forEach(ev => ev.date = moveD(ev.date));
+                        changed = true;
+                    }
+                }
+            } else if (type === 'bar-resize') {
+                const p = state.plantings.find(x => x.id === target.dataset.pid);
+                if (p) { p.end = date; changed = true; }
+            } else if (type === 'mark-move') {
+                const p = state.plantings.find(x => x.id === target.dataset.pid);
+                if (p) { const ev = p.events[target.dataset.idx]; ev.date = date; if (ev.type === 'w6') p.hStart = date; if (ev.type === 'w7') p.hEnd = date; changed = true; }
+            }
+            if (changed) save();
+            return changed;
+        }
+
+        function save() { localStorage.setItem(DB_KEY, JSON.stringify(state)); }
+        function closeModal() { document.getElementById('masterModal').style.display = 'none'; renderUI(); }
+
+        // 指定日付の位置までスクロール（保存後に画面外にならないように）
+        function scrollToDate(dateStr) {
+            const isPC = window.innerWidth > 768;
+            const grid = document.getElementById('gridScroll');
+            if (!grid || !dateStr) return;
+            const base = new Date(2026, 0, 1);
+            const d = new Date(dateStr); d.setHours(0,0,0,0);
+            let idx = Math.floor((d - base) / 86400000);
+            idx = Math.max(0, Math.min(364, idx));
+            const appMain = document.querySelector('.app-main');
+            let ds;
+            if (state.zoom < 0.5) {
+                if (isPC) ds = (window.innerWidth - 140) / 367;
+                else ds = ((appMain ? appMain.clientHeight : window.innerHeight - 60) - 40) / 365;
+            } else {
+                ds = (isPC ? 60 : 110) * state.zoom;
+            }
+            const pos = idx * ds;
+            if (isPC) {
+                const visW = grid.clientWidth;
+                if (pos < grid.scrollLeft || pos > grid.scrollLeft + visW - ds * 30) {
+                    grid.scrollLeft = Math.max(0, pos - visW * 0.25);
+                }
+            } else {
+                const visH = grid.clientHeight;
+                if (pos < grid.scrollTop || pos > grid.scrollTop + visH - ds * 30) {
+                    grid.scrollTop = Math.max(0, pos - visH * 0.25);
+                }
+            }
+        }
+        function formatDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        function diffDays(d1, d2) { return Math.round((d2 - d1) / (1000 * 60 * 60 * 24)); }
+
+        /* ===== About ダイアログ ===== */
+        const APP_VERSION = '1.0.0';
+        const IS_FREE = true;  // 無料版フラグ
+        const FREE_MAX_FIELDS = 1;
+        const FREE_MAX_PLANTINGS = 3;
+        const APP_NAME    = 'HarvestSuite スケジュール Free';
+        const APP_BRAND   = 'あらや農園™';
+        const APP_COPY    = '© 2026 あらや農園. All Rights Reserved.';
+
+        function openAbout() {
+            document.getElementById('m-title').innerHTML =
+                '<span style="font-size:13px; font-weight:600; color:#888; letter-spacing:0.5px;">' + APP_BRAND + '</span><br>' +
+                '<span style="font-size:18px;">' + APP_NAME + '</span>';
+            document.getElementById('m-content').innerHTML =
+                '<div style="text-align:center; padding:10px 0 20px;">' +
+                    '<div style="margin-bottom:8px;"><img src="data:image/png;base64,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" style="width:80px; height:80px; border-radius:50%; object-fit:cover;" alt="あらや農園ロゴ"></div>' +
+                    '<div style="font-size:22px; font-weight:900; color:#2e7d32; letter-spacing:1px;">HarvestSuite</div>' +
+                    '<div style="font-size:14px; color:#555; margin-top:2px;">スケジュール <span style="background:#ffd600; color:#333; border-radius:6px; padding:2px 8px; font-size:12px; font-weight:bold;">Free</span> &nbsp; <span style="font-size:12px; color:#888;">v' + APP_VERSION + '</span></div>' +
+                    '<div style="font-size:11px; color:#888; margin-top:4px; font-weight:bold; letter-spacing:0.5px;">' + APP_BRAND + '</div>' +
+                    '<hr style="margin:16px 0; border:none; border-top:1px solid #eee;">' +
+                    '<div style="font-size:12px; color:#555; line-height:1.8; text-align:left;">' +
+                        '🌱 農家のための圃場スケジュール管理ソフト<br>' +
+                        '📅 作付け・収穫・作業を一覧で見える化<br>' +
+                        '🖨️ A4印刷・スマホ対応<br>' +
+                        '🌤️ 天気予報・前年比較機能搭載' +
+                    '</div>' +
+                    '<hr style="margin:16px 0; border:none; border-top:1px solid #eee;">' +
+                    '<div style="font-size:10px; color:#aaa; line-height:1.8;">' +
+                        APP_COPY + '<br>' +
+                        'HarvestSuite は ' + APP_BRAND + ' のブランドです。<br>' +
+                        '無断複製・改変・再配布を禁じます。' +
+                    '</div>' +
+                    '<button onclick="openTerms()" style="margin-top:14px; width:100%; padding:10px; background:#e8f5e9; border:1px solid #a5d6a7; border-radius:8px; font-size:13px; color:#2e7d32; cursor:pointer;">📄 利用規約を確認する</button>' +
+                    '<div style="background:#fff9c4; border:1px solid #f9a825; border-radius:12px; padding:12px; margin-top:12px;">' +
+                    '<p style="font-size:12px; font-weight:bold; color:#e65100; margin-bottom:6px;">⚡ 無料版の制限</p>' +
+                    '<p style="font-size:11px; color:#555; line-height:1.7; margin-bottom:10px;">・圃場：1つまで　・作物配置：3つまで<br>・前年比較・GPS：Pro版限定</p>' +
+                    '<a href="https://arayanoen-site.pages.dev/" target="_blank" style="display:block; background:#2e7d32; color:white; text-decoration:none; padding:10px; border-radius:10px; font-size:13px; font-weight:bold; text-align:center;">🛒 Pro版を購入する</a>' +
+                    '</div>' +
+                '</div>';
+            document.getElementById('masterModal').style.display = 'flex';
+            document.getElementById('m-content').querySelector('button') &&
+                document.getElementById('m-content').querySelector('button').addEventListener('click', openTerms);
+        }
+
+        function openTerms() {
+            document.getElementById('m-title').innerText = '利用規約';
+            document.getElementById('m-content').innerHTML =
+                '<div style="font-size:12px; color:#333; line-height:1.9; max-height:65vh; overflow-y:auto; padding-right:4px;">' +
+                '<p style="font-weight:bold; font-size:13px; margin-bottom:8px;">HarvestSuite スケジュール Free v' + APP_VERSION + ' 利用規約</p>' +
+                '<p style="font-weight:bold; margin-top:12px; color:#2e7d32;">■ 利用許諾</p>' +
+                '<p>本ソフトウェアの無料版（Free版）は、個人・農業法人を問わず、農場・圃場管理目的での無償利用を許諾します。商用目的での再配布・転売は禁止します。</p>' +
+                '<p style="font-weight:bold; margin-top:12px; color:#c62828;">■ 禁止事項</p>' +
+                '<p>・第三者への再配布・転売・貸与の禁止<br>' +
+                '・ソースコードの改変版の配布・公開の禁止<br>' +
+                '・著作権表示・ブランド名の削除・改ざんの禁止<br>' +
+                '・リバースエンジニアリングおよびその内容の公開禁止<br>' +
+                '・他製品・サービスへの組み込みによる商業利用の禁止</p>' +
+                '<p style="font-weight:bold; margin-top:12px; color:#2e7d32;">■ 免責事項</p>' +
+                '<p>本ソフトウェアは現状有姿で提供されます。提供者はデータ損失その他いかなる損害についても責任を負いません。</p>' +
+                '<p style="font-weight:bold; margin-top:12px; color:#2e7d32;">■ データの取り扱い</p>' +
+                '<p>入力データはすべてお客様のデバイス内（ローカルストレージ）に保存され、提供者が収集することはありません。</p>' +
+                '<p style="font-weight:bold; margin-top:12px; color:#2e7d32;">■ サポート</p>' +
+                '<p>Free版は無償提供のため、個別サポートの提供は行っておりません。Pro版購入者は購入日から90日間サポートを提供します。お問い合わせは <a href="https://arayanoen-site.pages.dev/" target="_blank" style="color:#1976d2;">https://arayanoen-site.pages.dev/</a> の問い合わせフォームよりご連絡ください。</p>' +
+                '<p style="font-weight:bold; margin-top:12px; color:#2e7d32;">■ 著作権</p>' +
+                '<p>' + APP_COPY + '<br>HarvestSuite は あらや農園™ のブランドです。</p>' +
+                '</div>';
+            document.getElementById('masterModal').style.display = 'flex';
+        }
+
+        /* マスター管理用ロジック */
+        function openMaster() {
+            document.getElementById('m-title').innerText = '設定';
+            let h = `
+            <div style="background:#e8f5e9; padding:15px; border-radius:15px; margin-bottom:20px; border:1px solid var(--primary);">
+                <label style="font-size:12px; font-weight:bold; color:var(--primary);">📍 栽培地点の設定（${state.location.name}）</label>
+                <div style="display:flex; gap:5px; margin-top:8px;">
+                    <input type="text" id="loc-search" placeholder="市区町村名を入力" style="flex:1; height:36px; padding:0 10px; border:1px solid #ccc; border-radius:18px;">
+                    <button class="btn" style="background:var(--primary); height:36px; padding:0 15px;" onclick="searchLocation()">検索</button>
+                </div>
+                <div style="display:flex; gap:5px; margin-top:8px;">
+                    <button class="btn" style="flex:1; height:36px; background:#9e9e9e; font-size:13px;" onclick="showUpgradePrompt('GPS位置情報')">📍 現在地を取得（GPS）🔒</button>
+                    <button class="btn" style="height:36px; background:#ef5350; padding:0 12px; font-size:12px;" onclick="resetLocation()">🗑️ 地点解除</button>
+                </div>
+                <div id="loc-results" style="margin-top:10px; max-height:150px; overflow-y:auto; background:white; border-radius:10px;"></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap;">
+                <button class="btn" style="flex:1; background:var(--primary);" onclick="showMasterList('crops')">🌿 品目編集</button>
+                <button class="btn" style="flex:1; background:var(--primary);" onclick="showMasterList('works')">🔧 作業編集</button>
+                <button class="btn" style="flex:1; background:#1565c0;" onclick="showFieldList()">🌾 圃場編集${IS_FREE ? ' (1/1)' : ''}</button>
+            </div>
+            <div id="master-list-area"></div>
+            <div style="margin-top:20px; padding:15px; background:#f5f5f5; border-radius:12px;">
+                <label style="font-size:12px; font-weight:bold; color:#666; margin-bottom:10px; display:block;">データ管理</label>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <button class="btn" style="background:#e65100; height:40px;" onclick="addDummyData()">📋 サンプルデータを読み込む</button>
+                    <button class="btn" style="background:#666; height:40px;" onclick="resetMaster()">🔄 アイコン設定をリセット</button>
+                    <button class="btn" style="background:#d32f2f; height:40px;" onclick="clearData()">🗑️ 全データを削除</button>
+                </div>
+            </div>
+            `;
+            document.getElementById('m-content').innerHTML = h;
+            document.getElementById('masterModal').style.display = 'flex';
+            showMasterList('crops');
+        }
+
+        function showMasterList(type) {
+            const list = state.master[type];
+            let h = list.map((item, idx) => {
+                const isSvg = item.icon && item.icon.startsWith('<svg');
+                const style = item.icon && item.icon.length > 2 && !isSvg ? `background-image:url(${item.icon}); font-size:0;` : '';
+                const content = isSvg ? item.icon : (item.icon && item.icon.length <= 2 ? item.icon : '');
+                return `
+                <div class="master-item-row" onclick="editMasterItem('${type}', ${idx})">
+                    <div class="master-item-icon" style="${style}">${content}</div>
+                    <div class="master-item-info">
+                        <div class="master-item-name">${item.name}</div>
+                    </div>
+                    <div style="color:#ccc;">▶</div>
+                </div>
+                `;
+            }).join('');
+            h += (IS_FREE && type === 'works') ? `<button class="btn-add" style="opacity:0.5; background:#9e9e9e;" onclick="showUpgradePrompt('カスタム作業タイプ追加')">＋ 新規追加 🔒 Pro版</button>` : `<button class="btn-add" onclick="editMasterItem('${type}', -1)">＋ 新規追加</button>`;
+            document.getElementById('master-list-area').innerHTML = h;
+        }
+
+        function editMasterItem(type, idx) {
+            const isNew = idx === -1;
+            const item = isNew ? { id: type[0] + Date.now(), name: '', icon: '' } : state.master[type][idx];
+
+            let h = `
+            <div class="master-form">
+                <label>アイコン（現在の表示）</label>
+                <div style="display:flex; align-items:center; gap:15px; margin:10px 0;">
+                    <div id="preview-icon" class="master-item-icon" style="${item.icon && item.icon.length > 2 && !item.icon.startsWith('<svg') ? `background-image:url(${item.icon}); font-size:0;` : ''}">${item.icon && item.icon.startsWith('<svg') ? item.icon : (item.icon && item.icon.length <= 2 ? item.icon : '')}</div>
+                    <button class="btn" style="background:#444; font-size:12px; height:auto; padding:8px 12px;" onclick="document.getElementById('file-input').click()">画像を選択/変更</button>
+                    <input type="file" id="file-input" style="display:none" accept="image/*" onchange="handleImageUpload(event)">
+                </div>
+                <label>または絵文字を入力</label>
+                <input type="text" id="edit-icon" value="${item.icon && item.icon.length <= 2 ? item.icon : ''}" placeholder="例：🍅" oninput="handleEmojiInput(this)">
+                
+                <label>名前</label>
+                <input type="text" id="edit-name" value="${item.name}" placeholder="名前を入力">
+                
+                <input type="hidden" id="edit-icon-data" value="${item.icon || ''}">
+
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button class="btn" style="flex:1; background:var(--primary);" onclick="saveMasterItem('${type}', ${idx})">保存</button>
+                    ${!isNew ? `<button class="btn" style="flex:1; background:#d32f2f;" onclick="deleteMasterItem('${type}', ${idx})">削除</button>` : ''}
+                </div>
+                <button class="btn-add" style="background:#666; margin-top:10px;" onclick="showMasterList('${type}')">キャンセル</button>
+            </div>
+            `;
+            document.getElementById('master-list-area').innerHTML = h;
+        }
+
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const base64 = event.target.result;
+                document.getElementById('preview-icon').style.backgroundImage = `url(${base64})`;
+                document.getElementById('preview-icon').innerText = "";
+                document.getElementById('edit-icon-data').value = base64;
+                document.getElementById('edit-icon').value = ""; // 絵文字入力をクリア
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleEmojiInput(input) {
+            const val = input.value;
+            if (val.length > 0) {
+                document.getElementById('preview-icon').style.backgroundImage = "none";
+                document.getElementById('preview-icon').innerText = val;
+                document.getElementById('edit-icon-data').value = val;
+            }
+        }
+
+        function saveMasterItem(type, idx) {
+            const name = document.getElementById('edit-name').value;
+            const icon = document.getElementById('edit-icon-data').value;
+            if (!name) return alert('名前を入力してください');
+
+            if (idx === -1) {
+                state.master[type].push({ id: type[0] + Date.now(), name, icon });
+            } else {
+                state.master[type][idx].name = name;
+                state.master[type][idx].icon = icon;
+            }
+            save();
+            showMasterList(type);
+            renderUI();
+        }
+
+        function deleteMasterItem(type, idx) {
+            if (!confirm('この項目を削除しますか？')) return;
+            state.master[type].splice(idx, 1);
+            save();
+            showMasterList(type);
+            renderUI();
+        }
+
+        /* ===== 圃場管理 ===== */
+        function showFieldList() {
+            const area = document.getElementById('master-list-area');
+            if (!area) return;
+            area.innerHTML =
+                state.fields.map((f, idx) => {
+                    const pCount = state.plantings.filter(p => p.fieldId === f.id).length;
+                    const subLines = [
+                        f.area ? `📐 ${f.area}` : '',
+                        f.note ? `📝 ${f.note}` : '',
+                        `作付け ${pCount}件`
+                    ].filter(Boolean).join('　');
+                    return `
+                    <div class="master-item-row" onclick="editField(${idx})" style="cursor:pointer;">
+                        <div class="master-item-icon" style="font-size:22px; background:#e8f5e9;">🌾</div>
+                        <div class="master-item-info">
+                            <div class="master-item-name">${f.name}</div>
+                            <div style="font-size:11px; color:#888; margin-top:2px;">${subLines}</div>
+                        </div>
+                        <div style="color:#ccc; font-size:18px;">▶</div>
+                    </div>`;
+                }).join('') +
+                `<button class="btn-add" onclick="freeCheckFields() && editField(-1)" style="${IS_FREE && state.fields.length >= FREE_MAX_FIELDS ? 'opacity:0.5;' : ''}">＋ 圃場を追加${IS_FREE && state.fields.length >= FREE_MAX_FIELDS ? ' 🔒 Pro版' : ''}</button>`;
+        }
+
+        function editField(idx) {
+            const isNew = idx === -1;
+            const f = isNew ? { name: '', area: '', note: '' } : state.fields[idx];
+            const pCount = isNew ? 0 : state.plantings.filter(p => p.fieldId === f.id).length;
+            document.getElementById('master-list-area').innerHTML = `
+            <div class="master-form">
+                <label>圃場名 *</label>
+                <input type="text" id="field-name" value="${f.name}" placeholder="例：第1圃場、東ハウス">
+                <label>面積（任意）</label>
+                <input type="text" id="field-area" value="${f.area || ''}" placeholder="例：10a、0.1ha、30坪">
+                <label>メモ（任意）</label>
+                <input type="text" id="field-note" value="${f.note || ''}" placeholder="例：水田、ビニールハウス、露地">
+                ${!isNew ? `<div style="margin-top:8px; font-size:12px; color:#888;">関連する作付け: ${pCount}件</div>` : ''}
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button class="btn" style="flex:1; background:var(--primary); height:48px; font-size:15px;" onclick="saveField(${idx})">💾 保存</button>
+                    ${!isNew ? `<button class="btn" style="flex:1; background:#d32f2f; height:48px; font-size:15px;" onclick="deleteField(${idx})">🗑️ 削除</button>` : ''}
+                </div>
+                <button class="btn-add" style="background:#666; margin-top:10px;" onclick="showFieldList()">← キャンセル</button>
+            </div>`;
+        }
+
+        function saveField(idx) {
+            const name = document.getElementById('field-name').value.trim();
+            const area = document.getElementById('field-area').value.trim();
+            const note = document.getElementById('field-note').value.trim();
+            if (!name) { alert('圃場名を入力してください'); return; }
+            if (idx === -1) {
+                if (!freeCheckFields()) return;
+                state.fields.push({ id: 'f' + Date.now(), name, area, note });
+            } else {
+                state.fields[idx] = { ...state.fields[idx], name, area, note };
+            }
+            save();
+            showFieldList();
+            renderUI();
+        }
+
+        function deleteField(idx) {
+            const f = state.fields[idx];
+            const pCount = state.plantings.filter(p => p.fieldId === f.id).length;
+            const msg = pCount > 0
+                ? `「${f.name}」を削除します。\nこの圃場に登録されている作付け ${pCount}件も一緒に削除されます。\nよろしいですか？`
+                : `「${f.name}」を削除しますか？`;
+            if (!confirm(msg)) return;
+            state.plantings = state.plantings.filter(p => p.fieldId !== f.id);
+            state.fields.splice(idx, 1);
+            save();
+            showFieldList();
+            renderUI();
+        }
+
+        // 作業タイプのデフォルト色
+        function defaultWorkColor(type) {
+            const map = { w3:'#1976d2', w4:'#f57c00', w5:'#c62828', w6:'#e65100', w7:'#e65100', w8:'#455a64', w9:'#5d4037', w10:'#388e3c', w11:'#7b1fa2', w12:'#006064' };
+            return map[type] || '#607d8b';
+        }
+        // hex→rgba変換（グラデーション用）
+        function hexToRgba(hex, a) {
+            hex = hex.replace('#','');
+            if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+            const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+            return 'rgba('+r+','+g+','+b+','+a+')';
+        }
+
+        function openPnl(type, id, idx = null) {
+            editTarget = { type, id, idx: idx !== null ? parseInt(idx) : null };
+
+            if (type === 'p') {
+                const p = state.plantings.find(x => x.id === id);
+                if (!p) return;
+                const crop = state.master.crops.find(c => c.id === p.cropId);
+                const cropName = crop ? crop.name : '不明';
+                const isCarryover = new Date(p.start) < new Date(2026, 0, 1);
+                document.getElementById('m-title').innerText = '作付け編集: ' + cropName;
+                document.getElementById('m-content').innerHTML =
+                    '<div style="margin-bottom:14px;">' +
+                    '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:#388e3c;font-weight:bold;">' +
+                    '<input type="checkbox" id="pnl-carryover"' + (isCarryover ? ' checked' : '') +
+                    ' onchange="toggleCarryoverDate()" style="width:18px;height:18px;cursor:pointer;"> ◀ 前年からの続き' +
+                    '</label></div>' +
+                    '<div style="margin-bottom:12px;">' +
+                    '<label style="font-size:12px;color:#888;display:block;margin-bottom:4px;">開始日</label>' +
+                    '<input type="date" id="pnl-start" value="' + p.start + '" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:15px;box-sizing:border-box;">' +
+                    '</div>' +
+                    '<div style="margin-bottom:20px;">' +
+                    '<label style="font-size:12px;color:#888;display:block;margin-bottom:4px;">終了日</label>' +
+                    '<input type="date" id="pnl-end" value="' + p.end + '" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:15px;box-sizing:border-box;">' +
+                    '</div>' +
+                    '<button id="pnl-save-btn" class="btn" style="width:100%;height:50px;font-size:15px;margin-bottom:10px;background:#2e7d32;">💾 保存</button>' +
+                    '<button id="pnl-del-btn" class="btn" style="width:100%;height:44px;background:#d32f2f;font-size:14px;">削除する</button>';
+
+            } else {
+                const p = state.plantings.find(x => x.id === id);
+                if (!p) return;
+                const evIdx = idx !== null ? parseInt(idx) : null;
+                const ev = (evIdx !== null) ? p.events[evIdx] : null;
+                if (!ev) return;
+                const m = state.master.works.find(x => x.id === ev.type);
+                const workName = m ? m.name : '不明';
+                const isSpanMode = !!(ev.isSpan || ev.endDate);
+                const evColor = ev.color || defaultWorkColor(ev.type);
+                const INP = 'width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:15px;box-sizing:border-box;';
+                document.getElementById('m-title').innerText = '作業編集: ' + workName;
+                document.getElementById('m-content').innerHTML =
+                    // 期間 / 単発 切替
+                    '<div style="margin-bottom:14px;">' +
+                    '<label style="font-size:12px;color:#888;display:block;margin-bottom:8px;font-weight:bold;">表示方法</label>' +
+                    '<div style="display:flex;gap:10px;">' +
+                    '<label id="lbl-span-y" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:14px;padding:10px;border-radius:10px;border:2px solid ' + (isSpanMode ? '#1565c0' : '#ddd') + ';background:' + (isSpanMode ? '#1565c0' : 'white') + ';color:' + (isSpanMode ? 'white' : '#333') + ';">' +
+                    '<input type="radio" name="evspan" id="pnl-span-y" value="1"' + (isSpanMode ? ' checked' : '') + ' style="display:none;"> 📅 期間</label>' +
+                    '<label id="lbl-span-n" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-size:14px;padding:10px;border-radius:10px;border:2px solid ' + (!isSpanMode ? '#1565c0' : '#ddd') + ';background:' + (!isSpanMode ? '#1565c0' : 'white') + ';color:' + (!isSpanMode ? 'white' : '#333') + ';">' +
+                    '<input type="radio" name="evspan" id="pnl-span-n" value="0"' + (!isSpanMode ? ' checked' : '') + ' style="display:none;"> 📌 単発</label>' +
+                    '</div></div>' +
+                    // 開始日
+                    '<div style="margin-bottom:12px;">' +
+                    '<label style="font-size:12px;color:#888;display:block;margin-bottom:4px;">開始日</label>' +
+                    '<input type="date" id="pnl-date" value="' + ev.date + '" style="' + INP + '">' +
+                    '</div>' +
+                    // 終了日（期間選択時のみ表示）
+                    '<div id="pnl-end-row" style="margin-bottom:12px;display:' + (isSpanMode ? 'block' : 'none') + ';">' +
+                    '<label style="font-size:12px;color:#888;display:block;margin-bottom:4px;">終了日 <span style="color:#e65100;font-size:11px;">（空欄=終了未定→グラデーション表示）</span></label>' +
+                    '<input type="date" id="pnl-enddate" value="' + (ev.endDate || '') + '" style="' + INP + '">' +
+                    '</div>' +
+                    // 色
+                    '<div style="margin-bottom:20px;">' +
+                    '<label style="font-size:12px;color:#888;display:block;margin-bottom:6px;">色</label>' +
+                    '<input type="color" id="pnl-color" value="' + evColor + '" style="width:100%;height:48px;border:1px solid #ddd;border-radius:8px;cursor:pointer;padding:4px;">' +
+                    '</div>' +
+                    '<button id="pnl-save-btn" class="btn" style="width:100%;height:50px;font-size:15px;margin-bottom:10px;background:#2e7d32;">💾 保存</button>' +
+                    '<button id="pnl-del-btn" class="btn" style="width:100%;height:44px;background:#d32f2f;font-size:14px;">削除する</button>';
+
+                // 期間/単発 ラジオのUI切替
+                var _spanY = document.getElementById('pnl-span-y');
+                var _spanN = document.getElementById('pnl-span-n');
+                var _endRow = document.getElementById('pnl-end-row');
+                var _lblY = document.getElementById('lbl-span-y');
+                var _lblN = document.getElementById('lbl-span-n');
+                function _setSpanUI(isSpan) {
+                    _endRow.style.display = isSpan ? 'block' : 'none';
+                    _lblY.style.background = isSpan ? '#1565c0' : 'white'; _lblY.style.color = isSpan ? 'white' : '#333'; _lblY.style.borderColor = isSpan ? '#1565c0' : '#ddd';
+                    _lblN.style.background = !isSpan ? '#1565c0' : 'white'; _lblN.style.color = !isSpan ? 'white' : '#333'; _lblN.style.borderColor = !isSpan ? '#1565c0' : '#ddd';
+                }
+                if (_spanY) _spanY.addEventListener('change', function() { _setSpanUI(true); });
+                if (_spanN) _spanN.addEventListener('change', function() { _setSpanUI(false); });
+            }
+            document.getElementById('masterModal').style.display = 'flex';
+            // ボタンにイベントリスナーを直接セット（onclickに依存しない確実な方法）
+            var _saveBtn = document.getElementById('pnl-save-btn');
+            var _delBtn  = document.getElementById('pnl-del-btn');
+            if (_saveBtn) _saveBtn.addEventListener('click', function(e) { e.stopPropagation(); savePnl(); });
+            if (_delBtn)  _delBtn.addEventListener('click',  function(e) { e.stopPropagation(); handleDelete(); });
+        }
+
+        // 前年チェックボックス変更時に開始日を1年前/2026-01-01 に切替
+        function toggleCarryoverDate() {
+            var cb = document.getElementById('pnl-carryover');
+            var si = document.getElementById('pnl-start');
+            if (!cb || !si) return;
+            if (cb.checked) {
+                var d = new Date(si.value || '2026-01-01');
+                d.setFullYear(d.getFullYear() - 1);
+                si.value = d.toISOString().slice(0, 10);
+            } else {
+                si.value = '2026-01-01';
+            }
+        }
+
+        // 保存ボタン共通処理（handleDelete と同じパターン）
+        function savePnl() {
+            if (!editTarget) { alert('保存エラー: 対象が見つかりません'); return; }
+            var type = editTarget.type;
+            var id   = editTarget.id;
+            var idx  = editTarget.idx;
+
+            if (type === 'p') {
+                var p = state.plantings.find(function(x){ return x.id === id; });
+                if (!p) { alert('保存エラー: 作付けが見つかりません id=' + id); return; }
+                var v1 = document.getElementById('pnl-start');
+                var v2 = document.getElementById('pnl-end');
+                if (v1 && v1.value) p.start = v1.value;
+                if (v2 && v2.value) {
+                    if (v2.value < (v1 ? v1.value : p.start)) {
+                        alert('終了日は開始日より後の日付を設定してください');
+                        return;
+                    }
+                    p.end = v2.value;
+                }
+            } else {
+                var p2 = state.plantings.find(function(x){ return x.id === id; });
+                if (!p2) { alert('保存エラー: 作付けが見つかりません id=' + id); return; }
+                var ev = (idx !== null) ? p2.events[idx] : null;
+                if (!ev) { alert('保存エラー: 作業が見つかりません idx=' + idx); return; }
+                // 期間/単発
+                var spanYEl = document.getElementById('pnl-span-y');
+                ev.isSpan = !!(spanYEl && spanYEl.checked);
+                // 色
+                var colorEl = document.getElementById('pnl-color');
+                if (colorEl) ev.color = colorEl.value;
+                // 日付
+                var d1 = document.getElementById('pnl-date');
+                var d2 = document.getElementById('pnl-enddate');
+                if (d1 && d1.value) {
+                    ev.date = d1.value;
+                    if (ev.type === 'w6') p2.hStart = d1.value;
+                    if (ev.type === 'w7') p2.hEnd   = d1.value;
+                }
+                if (ev.isSpan && d2 && d2.value) {
+                    ev.endDate = d2.value;
+                } else {
+                    delete ev.endDate;
+                }
+            }
+            save();
+            var _scrollDate = (type === 'p') ? (function(){
+                var _p2 = state.plantings.find(function(x){ return x.id === id; });
+                return _p2 ? _p2.start : null;
+            })() : null;
+            closeModal();
+            if (_scrollDate) scrollToDate(_scrollDate);
+        }
+
+        function handleDelete() {
+            if (editTarget.type === 'p') state.plantings = state.plantings.filter(x => x.id !== editTarget.id);
+            else {
+                const p = state.plantings.find(x => x.id === editTarget.id);
+                const ev = p.events[editTarget.idx];
+                if (ev.type === 'w6') p.hStart = null; if (ev.type === 'w7') p.hEnd = null;
+                p.events.splice(editTarget.idx, 1);
+            }
+            save(); closeModal();
+        }
+
+        function resetMaster() {
+            if (!confirm('アイコン設定（画像・名前・追加分）をすべてリセットし、デフォルトに戻しますか？')) return;
+            state.master = JSON.parse(JSON.stringify(DEFAULT_MASTER));
+            save();
+            closeModal();
+            renderUI();
+        }
+
+        // --- デバッグ・テスト用機能 ---
+        function addDummyData() {
+            if (!confirm('サンプルデータ（2025年分）を読み込みますか？\n読み込み後、「前年比較」ボタンで確認できます。')) return;
+
+            const dummies = [
+                { id: 'd1', fieldId: 'f1', cropId: 'c1', start: '2025-04-10', end: '2025-07-20', events: [] },
+                { id: 'd2', fieldId: 'f1', cropId: 'c9', start: '2025-09-01', end: '2025-11-15', events: [] },
+                { id: 'd3', fieldId: 'f2', cropId: 'c2', start: '2025-05-05', end: '2025-08-10', events: [] },
+                { id: 'd4', fieldId: 'f3', cropId: 'c10', start: '2025-03-20', end: '2025-06-15', events: [] }
+            ];
+
+            state.plantings = state.plantings.concat(dummies);
+            save();
+            renderUI();
+            alert('サンプルデータ（2025年分）を読み込みました。\n「前年比較」ボタンで確認できます。');
+        }
+
+        function clearData() {
+            if (!confirm('すべての作付けデータを完全に削除しますか？（マスター設定は維持されます）')) return;
+            state.plantings = [];
+            save();
+            renderUI();
+        }
+
+        function buildPrintLayout() {
+            let container = document.getElementById('printArea');
+            if (!container) return;
+            container.innerHTML = '';
+
+            // 白黒印刷用ハッチングパターン（作業種別ごと）
+            function getWorkPattern(type) {
+                const pats = {
+                    w3:  'repeating-linear-gradient(0deg,   rgba(0,0,0,.5) 0 1px, transparent 1px 4px)',
+                    w4:  'repeating-linear-gradient(45deg,  rgba(0,0,0,.5) 0 1px, transparent 1px 4px)',
+                    w5:  'repeating-linear-gradient(-45deg, rgba(0,0,0,.5) 0 1px, transparent 1px 4px)',
+                    w6:  'repeating-linear-gradient(90deg,  rgba(0,0,0,.5) 0 1px, transparent 1px 4px)',
+                    w7:  'repeating-linear-gradient(0deg,   rgba(0,0,0,.5) 0 1.5px, transparent 1.5px 3px)',
+                    w8:  'repeating-linear-gradient(45deg,rgba(0,0,0,.5) 0 1px,transparent 1px 3px),repeating-linear-gradient(-45deg,rgba(0,0,0,.5) 0 1px,transparent 1px 3px)',
+                    w9:  'repeating-linear-gradient(45deg,  rgba(0,0,0,.5) 0 2px, transparent 2px 6px)',
+                    w10: 'repeating-linear-gradient(0deg,   rgba(0,0,0,.5) 0 1px, transparent 1px 2px)',
+                    w11: 'repeating-linear-gradient(90deg,  rgba(0,0,0,.5) 0 1px, transparent 1px 3px)'
+                };
+                return pats[type] || '';
+            }
+
+            const periods = [
+                { title: '2026年度 上半期 (1月〜6月)', start: '2026-01-01', end: '2026-06-30', nori: 'right' },
+                { title: '2026年度 下半期 (7月〜12月)', start: '2026-07-01', end: '2026-12-31', nori: 'left' }
+            ];
+
+            const laneH = 22; // mm per lane（ラベル高さ込み）
+            // 1ページあたりの圃場行合計高さ上限（A4内に収める余裕を持たせる）
+            // 297mm - padding(20) - title(14) - dateRow(10) - legend(10) = 243mm → 230mm で余裕をもつ
+            const AVAIL_MM = 230;
+
+            // ── ① 全圃場のレーン数・行高さを一括計算（両半期共通） ──────────────────
+            const fieldInfos = state.fields.map(f => {
+                // shallow コピーで laneIdxPrint を汚染しないようにする
+                const fps = state.plantings
+                    .filter(p => p.fieldId === f.id)
+                    .map(p => Object.assign({}, p));
+                fps.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+                const laneBase = new Date(2026, 0, 1);
+                const lanes = [];
+                fps.forEach(p => {
+                    const eff = new Date(Math.max(new Date(p.start).getTime(), laneBase.getTime()));
+                    let al = -1;
+                    for (let i = 0; i < lanes.length; i++) {
+                        if (eff > lanes[i]) { al = i; break; }
+                    }
+                    if (al === -1) { al = lanes.length; lanes.push(new Date(p.end)); }
+                    else { lanes[al] = new Date(p.end); }
+                    p.laneIdxPrint = al;
+                });
+                const rowH = Math.max(30, (lanes.length * laneH) + 6);
+                return { field: f, rowH, plantings: fps };
+            });
+
+            // ── ② 圃場をページグループに分割（各グループが AVAIL_MM 以内に収まるよう） ──
+            const fieldGroups = [];
+            let curGroup = [], curH = 0;
+            fieldInfos.forEach(fi => {
+                if (curGroup.length > 0 && curH + fi.rowH > AVAIL_MM) {
+                    fieldGroups.push(curGroup);
+                    curGroup = [fi];
+                    curH = fi.rowH;
+                } else {
+                    curGroup.push(fi);
+                    curH += fi.rowH;
+                }
+            });
+            if (curGroup.length > 0) fieldGroups.push(curGroup);
+            const totalGroups = fieldGroups.length;
+
+            // ── ③ グループ × 半期 でページ生成 ─────────────────────────────────────
+            // 出力順：グループ1上半期, グループ1下半期, グループ2上半期, グループ2下半期…
+            // 印刷時：左右で上半期+下半期を貼り合わせ、上下でグループ行を重ねる
+            fieldGroups.forEach((group, gIdx) => {
+                const groupRowTotal = group.reduce((s, fi) => s + fi.rowH, 0);
+                // グリッド高さ = 月日ヘッダー(10mm) + 圃場行合計
+                const gridHmm = 10 + groupRowTotal;
+
+                periods.forEach(per => {
+                    const pg = document.createElement('div');
+                    pg.className = 'print-page';
+
+                    const start = new Date(per.start);
+                    const end   = new Date(per.end);
+                    const totalDays = diffDays(start, end) + 1;
+                    const dataAreaWidthPx = 150 * 3.78;
+                    const dayW = dataAreaWidthPx / totalDays;
+
+                    let dateHtml = '';
+                    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                        if (d.getDate() === 1) {
+                            dateHtml += `<div class="month-marker-print" style="left:${diffDays(start,d)*dayW}px;">${d.getMonth()+1}月</div>`;
+                        }
+                    }
+
+                    const usedWorkTypes = new Set();
+                    let rowsHtml = '';
+
+                    group.forEach(fi => {
+                        const { field: f, rowH, plantings: fPlantings } = fi;
+                        let fDataContent = '';
+
+                        fPlantings.forEach(p => {
+                            const ps = new Date(p.start), pe = new Date(p.end);
+                            if (ps > end || pe < start) return;
+
+                            const vs = ps < start ? start : ps;
+                            const ve = pe > end   ? end   : pe;
+                            const left   = diffDays(start, vs) * dayW;
+                            const width  = (diffDays(vs, ve) + 1) * dayW;
+                            const topPos = 5 + (p.laneIdxPrint * laneH);
+
+                            const isCarryover = ps < start;
+                            const barBorderStyle = isCarryover
+                                ? 'border-left:0.7mm dashed #444;border-radius:0 2.5mm 2.5mm 0;' : '';
+
+                            const crop = state.master.crops.find(c => c.id === p.cropId);
+                            let iconHtml = '';
+                            if (!isCarryover && crop) {
+                                const isSvg = crop.icon && crop.icon.startsWith('<svg');
+                                iconHtml = isSvg
+                                    ? `<div style="position:absolute;left:-3.5mm;top:-2.5mm;width:7mm;height:7mm;background:white;border:0.3mm solid #8bc34a;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10;transform:scale(0.8);">${crop.icon}</div>`
+                                    : `<div style="position:absolute;left:-3.5mm;top:-2.5mm;width:7mm;height:7mm;background:white;border:0.3mm solid #8bc34a;border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:10;font-size:10px;">${crop.icon&&crop.icon.length<=2?crop.icon:''}</div>`;
+                            }
+
+                            let harvestHtml = '';
+                            if (p.hStart) {
+                                const phs = new Date(p.hStart), phe = p.hEnd ? new Date(p.hEnd) : pe;
+                                if (!(phs > end || phe < start)) {
+                                    const vhs = phs < start ? start : phs, vhe = phe > end ? end : phe;
+                                    const hLeft  = diffDays(vs, vhs) * dayW;
+                                    const hWidth = (diffDays(vhs, vhe) + 1) * dayW;
+                                    harvestHtml = `<div style="position:absolute;top:0;left:${hLeft}px;width:${Math.max(2,hWidth)}px;height:5mm;background:#fb8c00;border-radius:2.5mm;opacity:0.8;"></div>`;
+                                }
+                            }
+
+                            let evBandsHtml = '', evLabelsHtml = '';
+                            let labelY = topPos + 5.3;
+                            const labelStep = 3.4;
+
+                            let cropCarryLabel = '';
+                            if (isCarryover) {
+                                cropCarryLabel = `<div style="position:absolute;top:${labelY}mm;left:${left}px;font-size:5pt;white-space:nowrap;color:#333;font-weight:bold;z-index:20;">◀${ps.getMonth()+1}/${ps.getDate()}〜</div>`;
+                                labelY += labelStep;
+                            }
+
+                            if (p.events) {
+                                p.events.forEach(ev => {
+                                    const evDate   = new Date(ev.date);
+                                    const isSpan   = ev.isSpan || !!ev.endDate;
+                                    const evEndDate = isSpan ? (ev.endDate ? new Date(ev.endDate) : pe) : null;
+                                    const evColor  = ev.color || defaultWorkColor(ev.type);
+                                    const pattern  = getWorkPattern(ev.type);
+                                    const patStyle = pattern ? `background-image:${pattern};` : '';
+                                    usedWorkTypes.add(ev.type);
+                                    const isEvCarryover = evDate < start;
+
+                                    if (isSpan && evEndDate) {
+                                        const evStart = isEvCarryover ? start : evDate;
+                                        const evEnd   = evEndDate > end ? end : evEndDate;
+                                        if (evStart > end || evEnd < start) return;
+                                        const evLeft  = diffDays(vs, evStart) * dayW;
+                                        const evWidth = (diffDays(evStart, evEnd) + 1) * dayW;
+                                        const carryEdge = isEvCarryover ? 'border-left:0.5mm dashed #333;border-radius:0 1mm 1mm 0;' : '';
+                                        evBandsHtml += `<div style="position:absolute;top:1mm;left:${evLeft}px;width:${Math.max(3,evWidth)}px;height:2.5mm;background:${evColor};${patStyle}opacity:0.9;border-radius:1mm;border:0.2mm solid rgba(0,0,0,0.35);${carryEdge}overflow:hidden;"></div>`;
+                                        const evLabelLeft = diffDays(start, evStart) * dayW;
+                                        const startStr = isEvCarryover ? `◀${evDate.getMonth()+1}/${evDate.getDate()}〜` : `${evDate.getMonth()+1}/${evDate.getDate()}〜`;
+                                        const endStr   = ev.endDate ? `${new Date(ev.endDate).getMonth()+1}/${new Date(ev.endDate).getDate()}` : '';
+                                        evLabelsHtml += `<div style="position:absolute;top:${labelY}mm;left:${evLabelLeft}px;font-size:4.5pt;white-space:nowrap;color:#222;z-index:20;line-height:1.3;">${startStr}${endStr}</div>`;
+                                        labelY += labelStep;
+                                    } else {
+                                        if (evDate < start || evDate > end) return;
+                                        const evLeft      = diffDays(vs, evDate) * dayW;
+                                        const evLabelLeft = diffDays(start, evDate) * dayW;
+                                        const dLabel = `${evDate.getMonth()+1}/${evDate.getDate()}`;
+                                        evBandsHtml += `<div style="position:absolute;top:1mm;left:${evLeft}px;width:2.5mm;height:2.5mm;background:${evColor};${patStyle}border-radius:50%;border:0.3mm solid rgba(0,0,0,0.45);"></div>`;
+                                        evLabelsHtml += `<div style="position:absolute;top:${labelY}mm;left:${evLabelLeft}px;font-size:4.5pt;white-space:nowrap;color:#222;z-index:20;line-height:1.3;">${isEvCarryover?'◀':''}${dLabel}</div>`;
+                                        labelY += labelStep;
+                                    }
+                                });
+                            }
+
+                            fDataContent += `<div style="position:absolute;top:${topPos}mm;left:${left}px;width:${Math.max(2,width)}px;height:5mm;background:#8bc34a;border:0.2mm solid #2e7d32;border-radius:2.5mm;z-index:5;${barBorderStyle}">${harvestHtml}${iconHtml}${evBandsHtml}</div>${cropCarryLabel}${evLabelsHtml}`;
+                        });
+
+                        rowsHtml += `<div class="f-row-print" style="height:${rowH}mm;"><div class="f-name-print" style="height:${rowH}mm;">${f.name}</div><div class="f-data-print">${fDataContent}</div></div>`;
+                    });
+
+                    // 作業種別凡例
+                    let legendHtml = '';
+                    if (usedWorkTypes.size > 0) {
+                        let legendItems = '';
+                        usedWorkTypes.forEach(wid => {
+                            const work = state.master.works.find(w => w.id === wid);
+                            const wname = work ? work.name : wid;
+                            const wcolor = defaultWorkColor(wid);
+                            const pattern = getWorkPattern(wid);
+                            const patStyle = pattern ? `background-image:${pattern};` : '';
+                            legendItems += `<div style="display:flex;align-items:center;gap:0.8mm;margin-right:3.5mm;white-space:nowrap;"><div style="width:4.5mm;height:3mm;background:${wcolor};${patStyle}border:0.2mm solid #444;border-radius:0.8mm;flex-shrink:0;"></div><span style="font-size:6pt;">${wname}</span></div>`;
+                        });
+                        legendHtml = `<div style="margin-top:1.5mm;padding-top:1mm;border-top:0.3mm solid #888;display:flex;flex-wrap:wrap;align-items:center;"><span style="font-size:6.5pt;font-weight:bold;margin-right:2mm;">【作業凡例】</span>${legendItems}</div>`;
+                    }
+
+                    // タイトル：複数グループ時はページ番号を付加
+                    const groupLabel = totalGroups > 1 ? `　[圃場グループ ${gIdx+1}/${totalGroups}]` : '';
+                    const noriText   = per.nori === 'right'
+                        ? `のりしろ（右に下半期ページを貼る）${totalGroups>1 ? '　下に次グループを貼る' : ''}`
+                        : `のりしろ（左に上半期ページを貼る）${totalGroups>1 ? '　下に次グループを貼る' : ''}`;
+
+                    pg.innerHTML = `
+                        <div class="print-title">
+                            <span>${per.title}${groupLabel}</span>
+                            <span>HarvestSuite スケジュール Pro | あらや農園™</span>
+                        </div>
+                        <div class="print-grid" style="height:${gridHmm}mm;">
+                            <div class="date-row-print">
+                                <div class="date-spacer-print"></div>
+                                <div class="date-labels-print">${dateHtml}</div>
+                            </div>
+                            ${rowsHtml}
+                            <div class="nori nori-${per.nori}">
+                                <div class="nori-label">${noriText}</div>
+                            </div>
+                        </div>
+                        ${legendHtml}
+                    `;
+                    container.appendChild(pg);
+                });
+            });
+        }
+
+        async function fetchWeather() {
+            const { lat, lon } = state.location;
+            if (!lat || !lon) return;
+
+            try {
+                // 1. 2026年実績・予報 (Open-Meteo)
+                // 年初(1/1)から未来14日間までを取得
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&past_days=92&forecast_days=14`);
+                const data = await res.json();
+                if (data.daily) {
+                    data.daily.time.forEach((t, i) => {
+                        state.weather[t] = {
+                            code: data.daily.weather_code[i],
+                            max: data.daily.temperature_2m_max[i],
+                            min: data.daily.temperature_2m_min[i]
+                        };
+                    });
+                }
+
+                // 2. 2025年実績（アイコン用のコードも含む）
+                const resHist = await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=2025-01-01&end_date=2025-12-31&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo`);
+                const dataHist = await resHist.json();
+                if (dataHist.daily) {
+                    dataHist.daily.time.forEach((t, i) => {
+                        state.histWeather[t] = {
+                            code: dataHist.daily.weather_code[i],
+                            max: dataHist.daily.temperature_2m_max[i],
+                            min: dataHist.daily.temperature_2m_min[i]
+                        };
+                    });
+                }
+                save(); renderUI();
+            } catch (e) { console.error('Weather fetch error', e); }
+        }
+
+        async function searchLocation() {
+            const q = document.getElementById('loc-search').value;
+            if (!q) return;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&accept-language=ja`);
+            const data = await res.json();
+            const area = document.getElementById('loc-results');
+            area.innerHTML = data.map(i => `<div class="search-result-item" onclick="setLoc('${i.display_name.replace(/'/g, "")}', ${i.lat}, ${i.lon})">${i.display_name}</div>`).join('');
+        }
+
+        function setLoc(name, lat, lon) {
+            state.location = { name, lat, lon };
+            state.weather = {}; state.histWeather = {};
+            save(); openMaster(); fetchWeather();
+        }
+
+        function resetLocation() {
+            if (!confirm('地点登録を解除しますか？\n天気予報データもクリアされます。')) return;
+            state.location = { name: '未設定', lat: null, lon: null };
+            state.weather = {}; state.histWeather = {};
+            save(); openMaster();
+        }
+
+        function useGPS() {
+            if (!navigator.geolocation) return alert('お使いのブラウザはGPSに対応していません');
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = '取得中...';
+            btn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+
+                try {
+                    // 座標から住所名を取得 (逆ジオコーディング)
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=ja`);
+                    const data = await res.json();
+                    const name = data.address.city || data.address.town || data.address.village || data.address.suburb || '現在地付近';
+                    setLoc(name, lat, lon);
+                } catch (e) {
+                    setLoc('現在地', lat, lon);
+                } finally {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            }, (err) => {
+                alert('位置情報の取得に失敗しました');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
