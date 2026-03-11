@@ -1667,7 +1667,7 @@
                 if (layer) {
                     const rect = layer.getBoundingClientRect(); const isPC = window.innerWidth > 768;
                     const offset = isPC ? (touch.clientX - rect.left) : (touch.clientY - rect.top);
-                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (appMain.clientHeight - 40) / 365) : (isPC ? 60 : 24) * state.zoom;
+                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (appMain.clientHeight - 40) / 365) : (isPC ? 60 : 110) * state.zoom;
                     const d = new Date(2026, 0, 1 + Math.floor(offset / currentDs));
                     const tip = document.getElementById('dateTip'); tip.style.display = 'block'; tip.innerText = (d.getMonth() + 1) + '/' + d.getDate();
                     tip.style.left = (touch.clientX + 15) + 'px'; tip.style.top = (touch.clientY - 40) + 'px';
@@ -1683,7 +1683,7 @@
                 if (layer) {
                     const rect = layer.getBoundingClientRect(); const isPC = window.innerWidth > 768;
                     const offset = isPC ? (touch.clientX - rect.left) : (touch.clientY - rect.top);
-                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (appMain.clientHeight - 40) / 365) : (isPC ? 60 : 24) * state.zoom;
+                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (appMain.clientHeight - 40) / 365) : (isPC ? 60 : 110) * state.zoom;
                     changed = handleDrop(currentType, formatDate(new Date(2026, 0, 1 + Math.floor(offset / currentDs))), layer.dataset.fieldId, active);
                 }
                 document.querySelectorAll('.ghost').forEach(g => g.remove());
