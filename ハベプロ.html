@@ -2941,9 +2941,11 @@
             const AUTH_URL = state.sync.url || ""; 
             const overlay = document.getElementById('authOverlay');
             
+            // ページロード時の挙動を安定させるため、チェック開始前に必ずロックが掛かっていることを確実にする
+            overlay.classList.remove('hidden');
+
             if (!AUTH_URL) {
                 if (isManual) alert("管理者：同期URLが設定されていません。⚙️設定から入力してください。");
-                overlay.classList.remove('hidden');
                 return;
             }
 
@@ -2953,9 +2955,9 @@
                     const data = await res.json();
                     if (data === "Invalid Key") {
                         if (isManual) msg.innerText = "誤ったライセンスキーです。";
-                        overlay.classList.remove('hidden');
                         return;
                     }
+                    // 認証成功時：ここで初めてキーを保存し、ロックを解除する
                     state.sync.key = key;
                     if (data && data.updatedAt > (state.updatedAt || 0)) {
                         state = data;
@@ -2965,13 +2967,11 @@
                     renderUI();
                 } else {
                     if (isManual) msg.innerText = "認証に失敗しました。";
-                    overlay.classList.remove('hidden');
                 }
             } catch (e) {
                 console.error("Auth Error", e);
                 if (isManual) msg.innerText = "通信エラーが発生しました。";
-                if (state.sync.key) overlay.classList.add('hidden');
-                else overlay.classList.remove('hidden');
+                // 🛡️ 鉄壁：通信エラー時は、安全のためにロックを維持する（すり抜けを許さない）
             }
         }
 
