@@ -701,7 +701,7 @@
 
             .print-page {
                 width: 210mm;
-                height: 296mm; /* 297mmから1mm減らしてモバイルブラウザの余白誤差を吸収 */
+                height: 285mm; /* スマホのシステム余白誤差を吸収するため十分に短く設定 */
                 padding: 10mm;
                 break-after: page;
                 break-inside: avoid;
@@ -709,6 +709,10 @@
                 box-sizing: border-box;
                 background: white;
                 overflow: hidden;
+            }
+
+            .print-page:last-child {
+                break-after: auto !important;
             }
 
             .print-title {
@@ -2455,9 +2459,8 @@
             ];
 
             const laneH = 22; // mm per lane（ラベル高さ込み）
-            // 1ページあたりの圃場行合計高さ上限（A4内に収める余裕を持たせる）
-            // 297mm - padding(20) - title(14) - dateRow(10) - legend(10) = 243mm → 230mm で余裕をもつ
-            const AVAIL_MM = 230;
+            // 297mm - padding(20) - title(14) - dateRow(10) - legend(10) = 243mm → 安全のため 200mm に設定
+            const AVAIL_MM = 200;
 
             // ── ① 全圃場のレーン数・行高さを一括計算（両半期共通） ──────────────────
             const fieldInfos = state.fields.map(f => {
