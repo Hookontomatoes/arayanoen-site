@@ -12,11 +12,6 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>HarvestSuite スケジュール Free | あらや農園™</title>
-    <!-- PWA & iOS Support -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="作付けFree">
-    <link rel="apple-touch-icon" href="https://arayanoen.jp/img/icon-192.png">
     <style>
         :root {
             --primary: #2e7d32;
@@ -97,7 +92,7 @@
 
         .app-main {
             display: flex;
-            height: calc(100vh - 50px); /* ヘッダー分 */
+            height: calc(100vh - 76px); /* -50px header -26px free banner */
             overflow: hidden;
             position: relative;
         }
@@ -567,15 +562,6 @@
                 padding-top: 40px;
                 /* フィールドヘッダーの高さ(40px)に合わせる */
                 overflow: hidden; /* scrollTop同期のため明示的に指定 */
-                position: relative;
-            }
-
-            /* モバイル用：軸（日付）側の高さ調整用スペーサー */
-            #axisHeaderSpacer {
-                height: 40px;
-                flex-shrink: 0;
-                background: #fafafa;
-                border-bottom: 2px solid var(--primary);
             }
 
             .grid-scroll {
@@ -685,20 +671,16 @@
                 margin: 0;
             }
 
-            html,
             body {
                 overflow: visible !important;
                 height: auto !important;
                 background: white;
-                margin: 0 !important;
-                padding: 0 !important;
             }
 
             header,
             .palette,
             .app-main,
             #dateTip,
-            #mobileHeaderRow,
             #free-limit-bar,
             .modal {
                 display: none !important;
@@ -711,18 +693,15 @@
 
             .print-page {
                 width: 210mm;
-                height: 285mm; /* スマホのシステム余白誤差を吸収するため十分に短く設定 */
+                height: 285mm; /* モバイルの余白誤差防止 */
                 padding: 10mm;
-                break-after: page;
+                page-break-after: always;
+                page-break-inside: avoid;
                 break-inside: avoid;
                 position: relative;
                 box-sizing: border-box;
                 background: white;
                 overflow: hidden;
-            }
-
-            .print-page:last-child {
-                break-after: auto !important;
             }
 
             .print-title {
@@ -1160,8 +1139,8 @@
             location: { name: '東京都千代田区', lat: 35.68, lon: 139.75 },
             weather: {}, // 2026年予報: 日付 -> { code, max, min }
             histWeather: {}, // 2025年実績: 日付 -> { max, min }
-            updatedAt: 0, // 最終更新日時（同期用）
-            sync: { key: '', url: '' } // クラウド同期設定
+            updatedAt: 0,
+            sync: { key: '', url: '' }
         };
 
         let lastTap = 0, editTarget = null;
@@ -1184,36 +1163,19 @@
                 if (!parsed.weather) parsed.weather = {};
                 if (!parsed.histWeather) parsed.histWeather = {};
                 if (parsed.frost === undefined) parsed.frost = true;
-                if (!parsed.sync) parsed.sync = { key: '', url: '' };
-                if (!parsed.updatedAt) parsed.updatedAt = 0;
                 state = parsed;
             }
-            
-            // プロ版(PRO)の設定があれば、同期設定を自動で引き継ぐ
-            if (!state.sync.url || !state.sync.key) {
-                const proSaved = localStorage.getItem('HarvestSuite_Schedule_Pro_v1');
-                if (proSaved) {
-                    const proState = JSON.parse(proSaved);
-                    if (proState.sync && proState.sync.url && proState.sync.key) {
-                        state.sync = { ...proState.sync };
-                    }
+            // プロ版の設定があれば引き継ぐ
+            if (!state.sync || !state.sync.url) {
+                const pro = localStorage.getItem('HarvestSuite_Schedule_Pro_v1');
+                if (pro) {
+                    const ps = JSON.parse(pro);
+                    if (ps.sync) state.sync = ps.sync;
                 }
             }
-
             renderUI(); setupInteractions(); setupDragScroll();
-
-            // クラウド同期対応（Pro/Free共通）
-            if (state.sync.url && state.sync.key) {
-                // 初回起動時に最新を取り込む
-                pullSync(false);
-                // 30秒ごとにバックグラウンドで同期
-                setInterval(() => pullSync(false), 30000);
-                // 画面（タブ）に戻った瞬間に同期
-                document.addEventListener("visibilitychange", () => {
-                    if (document.visibilityState === "visible") pullSync(false);
-                });
-            }
-
+            // 30秒ごとに自動同期
+            if (state.sync && state.sync.url) setInterval(() => pullSync(false), 30000);
             // PC↔スマホ切替時はスクロール位置を当日に戻す、それ以外は位置を保持
             let _prevIsPC = window.innerWidth > 768;
             window.addEventListener('resize', () => {
@@ -1338,7 +1300,7 @@
                 const isFrost = state.frost && (diffToToday >= 0 && diffToToday <= 7) && (wData?.min < 3);
 
                 let cellClass = `day-cell ${d.getDate() === 1 ? 'month-sep' : ''} ${isSmall ? 'small-view' : ''} ${isFrost ? 'frost-active' : ''}`;
-                let cellStyle = isPC ? `padding:0; min-width:${ds}px; width:${ds}px; gap:1px; height:150px;` : `padding:0; height:${ds}px; min-height:${ds}px; width:100px;`;
+                let cellStyle = isPC ? `min-width:${ds}px; width:${ds}px; gap:1px; height:150px;` : `height:${ds}px; min-height:${ds}px; width:100px;`;
 
                 axContent += `<div class="${cellClass}" style="${cellStyle} flex-shrink:0;">
                     <div class="day-weather">${curIcon}</div>
@@ -1352,15 +1314,14 @@
                 </div>`;
             }
             if (isPC) {
-                axis.innerHTML = `<div style="display:flex; width:${totalW}px; flex-shrink:0;">${axContent}</div>`;
+                axis.innerHTML = `<div style="display:flex; width:${totalW}px; flex-shrink:0;">${axContent}</div><div style="min-width:100px; width:100px; flex-shrink:0;"></div>`;
             } else {
                 const totalH = totalDays * ds;
-                // モバイル：ヘッダー高さを合わせるためスペーサーから開始
-                axis.innerHTML = `<div id="axisHeaderSpacer"></div><div style="display:flex; flex-direction:column; height:${totalH}px; flex-shrink:0;">${axContent}</div>`;
+                axis.innerHTML = `<div style="display:flex; flex-direction:column; height:${totalH}px; flex-shrink:0;">${axContent}</div><div style="min-height:100px; height:100px; flex-shrink:0;"></div>`;
             }
             grid.innerHTML = state.fields.map(f => {
-                const totalGridW = totalW;
-                const layerStyle = isPC ? `width:${totalGridW}px;` : `width:100px; height:${totalDays * ds}px; min-height:100px; background:white;`;
+                const totalGridW = totalW + 100; // バッファを100pxに統一
+                const layerStyle = isPC ? `min-width:${totalGridW}px; width:${totalGridW}px;` : `width:100px; min-height:${totalDays * ds}px; height:${totalDays * ds}px; background:white;`;
                 return `<div class="field-col" style="${isPC ? 'width:' + (totalGridW + 140) + 'px' : 'width:100px;'}">
                     <div class="field-header" style="width:${isPC ? 140 : 100}px;">${f.name}</div>
                     <div class="data-layer" data-field-id="${f.id}" style="${layerStyle} flex-shrink:0;"></div>
@@ -1697,11 +1658,7 @@
                 axis.style.overflowY = 'hidden'; // scrollTop同期のため非表示
                 axis.style.width = '100px';
                 axis.style.height = '100%';
-                
-                // モバイル：スクロール同期
-                grid.onscroll = () => {
-                    axis.scrollTop = grid.scrollTop;
-                };
+                grid.onscroll = () => { axis.scrollTop = grid.scrollTop; };
             }
             const btnZoom = document.getElementById('btnZoom');
             if (btnZoom) btnZoom.innerText = (state.zoom < 0.5) ? '🔍 通常表示' : '🔍 全体表示';
@@ -2085,13 +2042,10 @@
             <div id="master-list-area"></div>
             <div style="margin-top:20px; padding:15px; background:#f5f5f5; border-radius:12px;">
                 <label style="font-size:12px; font-weight:bold; color:#666; margin-bottom:10px; display:block;">📱 スマホ・PC連動設定（同期）</label>
-                <div style="font-size:11px; color:#666; margin-bottom:10px; line-height:1.4;">
-                    別のデバイス（PCやスマホ）とデータを繋ぐための設定です。共有元のURLとアクセスキーを入力してください。
-                </div>
                 <div style="display:flex; flex-direction:column; gap:8px;">
-                    <input type="text" id="sync-url" value="${state.sync.url || ''}" placeholder="同期URL (https://script.google.com/...)" style="width:100%; height:36px; padding:0 10px; border:1px solid #ccc; border-radius:18px; font-size:12px;">
-                    <input type="text" id="sync-key" value="${state.sync.key || ''}" placeholder="アクセスキー" style="width:100%; height:36px; padding:0 10px; border:1px solid #ccc; border-radius:18px; font-size:12px;">
-                    <button class="btn" style="background:#2e7d32; height:36px;" onclick="saveSyncSettings()">💾 同期設定を保存して実行</button>
+                    <input type="text" id="sync-url" value="${state.sync.url || ''}" placeholder="同期URL" style="width:100%; height:36px; padding:0 10px; border:1px solid #ccc; border-radius:18px; font-size:12px;">
+                    <input type="text" id="sync-key" value="${state.sync.key || ''}" placeholder="キー" style="width:100%; height:36px; padding:0 10px; border:1px solid #ccc; border-radius:18px; font-size:12px;">
+                    <button class="btn" style="background:#2e7d32; height:36px;" onclick="saveSyncSettings()">💾 保存して実行</button>
                 </div>
                 <hr style="margin:15px 0; border:none; border-top:1px solid #ddd;">
                 <label style="font-size:12px; font-weight:bold; color:#666; margin-bottom:10px; display:block;">データ管理</label>
@@ -2813,16 +2767,6 @@
             });
         }
 
-        function saveSyncSettings() {
-            const url = document.getElementById('sync-url').value.trim();
-            const key = document.getElementById('sync-key').value.trim();
-            if (!url || !key) return alert('URLとキーを入力してください');
-            state.sync = { url, key };
-            save();
-            alert('同期設定を保存しました。');
-            pullSync(true);
-        }
-
         async function pushSync() {
             if (!state.sync.key || !state.sync.url) return;
             try {
@@ -2831,7 +2775,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(state)
                 });
-            } catch (e) { console.error('Cloud Sync Push Error', e); }
+            } catch (e) { console.error('Sync Error', e); }
         }
 
         async function pullSync(manual = false) {
@@ -2839,26 +2783,22 @@
             try {
                 const res = await fetch(`${state.sync.url}?key=${state.sync.key}`);
                 if (res.ok) {
-                    const cloudState = await res.json();
-                    if (cloudState && cloudState.updatedAt) {
-                        // クラウド側の方が新しい場合のみ取り込む（手動の場合は確認を出す）
-                        if (cloudState.updatedAt > (state.updatedAt || 0)) {
-                            if (!manual || confirm('クラウドに新しいデータがあります。同期しますか？')) {
-                                state = cloudState;
-                                localStorage.setItem(DB_KEY, JSON.stringify(state));
-                                renderUI();
-                                if (manual) alert('同期が完了しました。');
-                                else console.log('Auto-sync: updated to ' + new Date(state.updatedAt).toLocaleTimeString());
-                            }
-                        } else if (manual) {
-                            alert('現在、最新の状態です。');
-                        }
+                    const cloud = await res.json();
+                    if (cloud.updatedAt > (state.updatedAt || 0)) {
+                        state = cloud;
+                        localStorage.setItem(DB_KEY, JSON.stringify(state));
+                        renderUI();
                     }
                 }
-            } catch (e) {
-                if (manual) alert('クラウドからのデータ取得に失敗しました。');
-                console.error('Cloud Sync Pull Error', e);
-            }
+            } catch (e) { console.error('Sync Error', e); }
+        }
+
+        function saveSyncSettings() {
+            const url = document.getElementById('sync-url').value.trim();
+            const key = document.getElementById('sync-key').value.trim();
+            state.sync = { url, key };
+            save(); alert('設定を保存しました');
+            pullSync(true);
         }
 
         init();
