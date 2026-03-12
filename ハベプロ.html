@@ -676,16 +676,20 @@
                 margin: 0;
             }
 
+            html,
             body {
                 overflow: visible !important;
                 height: auto !important;
                 background: white;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             header,
             .palette,
             .app-main,
             #dateTip,
+            #mobileHeaderRow,
             .modal {
                 display: none !important;
             }
@@ -697,10 +701,9 @@
 
             .print-page {
                 width: 210mm;
-                height: 297mm;
+                height: 296mm; /* 297mmから1mm減らしてモバイルブラウザの余白誤差を吸収 */
                 padding: 10mm;
-                page-break-after: always;
-                page-break-inside: avoid;
+                break-after: page;
                 break-inside: avoid;
                 position: relative;
                 box-sizing: border-box;
@@ -1224,7 +1227,7 @@
         function toggleZoom() {
             state.zoom = (state.zoom === 1) ? 0.05 : 1;
             // 全体表示でもパレットを維持（配置操作ができるよう）
-            renderUI();          
+            renderUI();
         }
 
         function togglePalette() {
