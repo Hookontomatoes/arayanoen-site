@@ -12,6 +12,11 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>HarvestSuite スケジュール Free | あらや農園™</title>
+    <!-- PWA & iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="作付けFree">
+    <link rel="apple-touch-icon" href="https://arayanoen.jp/img/icon-192.png">
     <style>
         :root {
             --primary: #2e7d32;
@@ -92,7 +97,7 @@
 
         .app-main {
             display: flex;
-            height: calc(100vh - 76px); /* -50px header -26px free banner */
+            height: calc(100vh - 50px); /* ヘッダー分 */
             overflow: hidden;
             position: relative;
         }
@@ -562,6 +567,15 @@
                 padding-top: 40px;
                 /* フィールドヘッダーの高さ(40px)に合わせる */
                 overflow: hidden; /* scrollTop同期のため明示的に指定 */
+                position: relative;
+            }
+
+            /* モバイル用：軸（日付）側の高さ調整用スペーサー */
+            #axisHeaderSpacer {
+                height: 40px;
+                flex-shrink: 0;
+                background: #fafafa;
+                border-bottom: 2px solid var(--primary);
             }
 
             .grid-scroll {
@@ -671,16 +685,20 @@
                 margin: 0;
             }
 
+            html,
             body {
                 overflow: visible !important;
                 height: auto !important;
                 background: white;
+                margin: 0 !important;
+                padding: 0 !important;
             }
 
             header,
             .palette,
             .app-main,
             #dateTip,
+            #mobileHeaderRow,
             #free-limit-bar,
             .modal {
                 display: none !important;
@@ -693,15 +711,18 @@
 
             .print-page {
                 width: 210mm;
-                height: 297mm;
+                height: 285mm; /* スマホのシステム余白誤差を吸収するため十分に短く設定 */
                 padding: 10mm;
-                page-break-after: always;
-                page-break-inside: avoid;
+                break-after: page;
                 break-inside: avoid;
                 position: relative;
                 box-sizing: border-box;
                 background: white;
                 overflow: hidden;
+            }
+
+            .print-page:last-child {
+                break-after: auto !important;
             }
 
             .print-title {
@@ -1138,10 +1159,21 @@
             master: JSON.parse(JSON.stringify(DEFAULT_MASTER)),
             location: { name: '東京都千代田区', lat: 35.68, lon: 139.75 },
             weather: {}, // 2026年予報: 日付 -> { code, max, min }
-            histWeather: {} // 2025年実績: 日付 -> { max, min }
+            histWeather: {}, // 2025年実績: 日付 -> { max, min }
+            updatedAt: 0, // 最終更新日時（同期用）
+            sync: { key: '', url: '' } // クラウド同期設定
         };
 
         let lastTap = 0, editTarget = null;
+        let _cycleIntervals = []; // 同日複数アイコンのサイクル管理
+
+        // スマホ全体表示のds計算: position:fixedのパレットが下部に被るため表示高を補正する
+        function getMobilePaletteH() {
+            if (window.innerWidth > 768) return 0;
+            const pal = document.getElementById('palette');
+            if (!pal) return 0;
+            return pal.classList.contains('collapsed') ? 25 : pal.offsetHeight;
+        }
 
         function init() {
             const saved = localStorage.getItem(DB_KEY);
@@ -1152,9 +1184,24 @@
                 if (!parsed.weather) parsed.weather = {};
                 if (!parsed.histWeather) parsed.histWeather = {};
                 if (parsed.frost === undefined) parsed.frost = true;
+                if (!parsed.sync) parsed.sync = { key: '', url: '' };
+                if (!parsed.updatedAt) parsed.updatedAt = 0;
                 state = parsed;
             }
             renderUI(); setupInteractions(); setupDragScroll();
+
+            // クラウド同期対応（Pro/Free共通）
+            if (state.sync.url && state.sync.key) {
+                // 初回起動時に最新を取り込む
+                pullSync(false);
+                // 30秒ごとにバックグラウンドで同期
+                setInterval(() => pullSync(false), 30000);
+                // 画面（タブ）に戻った瞬間に同期
+                document.addEventListener("visibilitychange", () => {
+                    if (document.visibilityState === "visible") pullSync(false);
+                });
+            }
+
             // PC↔スマホ切替時はスクロール位置を当日に戻す、それ以外は位置を保持
             let _prevIsPC = window.innerWidth > 768;
             window.addEventListener('resize', () => {
@@ -1174,11 +1221,7 @@
 
         function toggleZoom() {
             state.zoom = (state.zoom === 1) ? 0.05 : 1;
-            // 全体表示に切り替えた際、スマホなら邪魔にならないようパレットを自動で畳む
-            if (state.zoom < 0.5 && window.innerWidth <= 768) {
-                const pal = document.getElementById('palette');
-                if (pal) pal.classList.add('collapsed');
-            }
+            // 全体表示でもパレットを維持（配置操作ができるよう）
             renderUI();
         }
 
@@ -1283,7 +1326,7 @@
                 const isFrost = state.frost && (diffToToday >= 0 && diffToToday <= 7) && (wData?.min < 3);
 
                 let cellClass = `day-cell ${d.getDate() === 1 ? 'month-sep' : ''} ${isSmall ? 'small-view' : ''} ${isFrost ? 'frost-active' : ''}`;
-                let cellStyle = isPC ? `min-width:${ds}px; width:${ds}px; gap:1px; height:150px;` : `height:${ds}px; min-height:${ds}px; width:100px;`;
+                let cellStyle = isPC ? `padding:0; min-width:${ds}px; width:${ds}px; gap:1px; height:150px;` : `padding:0; height:${ds}px; min-height:${ds}px; width:100px;`;
 
                 axContent += `<div class="${cellClass}" style="${cellStyle} flex-shrink:0;">
                     <div class="day-weather">${curIcon}</div>
@@ -1297,14 +1340,15 @@
                 </div>`;
             }
             if (isPC) {
-                axis.innerHTML = `<div style="display:flex; width:${totalW}px; flex-shrink:0;">${axContent}</div><div style="min-width:100px; width:100px; flex-shrink:0;"></div>`;
+                axis.innerHTML = `<div style="display:flex; width:${totalW}px; flex-shrink:0;">${axContent}</div>`;
             } else {
                 const totalH = totalDays * ds;
-                axis.innerHTML = `<div style="display:flex; flex-direction:column; height:${totalH}px; flex-shrink:0;">${axContent}</div><div style="min-height:100px; height:100px; flex-shrink:0;"></div>`;
+                // モバイル：ヘッダー高さを合わせるためスペーサーから開始
+                axis.innerHTML = `<div id="axisHeaderSpacer"></div><div style="display:flex; flex-direction:column; height:${totalH}px; flex-shrink:0;">${axContent}</div>`;
             }
             grid.innerHTML = state.fields.map(f => {
-                const totalGridW = totalW + 100; // バッファを100pxに統一
-                const layerStyle = isPC ? `min-width:${totalGridW}px; width:${totalGridW}px;` : `min-height:${totalDays * ds}px; height:${totalDays * ds}px;`;
+                const totalGridW = totalW;
+                const layerStyle = isPC ? `width:${totalGridW}px;` : `height:${totalDays * ds}px;`;
                 return `<div class="field-col" style="${isPC ? 'width:' + (totalGridW + 140) + 'px' : ''}">
                     <div class="field-header" style="width:${isPC ? 140 : 100}px;">${f.name}</div>
                     <div class="data-layer" data-field-id="${f.id}" style="${layerStyle} flex-shrink:0;"></div>
@@ -1380,6 +1424,7 @@
 
                     const bar = document.createElement('div');
                     bar.className = isCarryover ? 'p-bar p-carryover' : 'p-bar';
+                    bar.dataset.pid = p.id; // ドロップ先判定用
                     // ダブルクリックで編集パネルを開く（ネイティブイベント）
                     (function(_pid) {
                         bar.addEventListener('dblclick', function(e) { e.stopPropagation(); openPnl('p', _pid); });
@@ -1469,6 +1514,11 @@
                                     evLabels.push({ text: startLabel, lx: offset - 14, ly: pos + wPos, tx: pos + wPos, ty: pos + wPos });
                                 }
                             }
+                            // 期間作業の開始位置にもアイコン円を表示（単発と同様）
+                            const isMSpan = m.icon && m.icon.startsWith('<svg');
+                            let spanMarkStyle = `border-color:${evColor};`;
+                            if (m.icon && m.icon.length > 2 && !isMSpan) spanMarkStyle += `background-image:url(${m.icon}); font-size:0;`;
+                            h += `<div class="p-mark" data-pid="${p.id}" data-idx="${idx}" style="${isPC ? 'left:' + wPos + 'px;top:50%' : 'top:' + wPos + 'px;left:50%'}; ${spanMarkStyle}">${isMSpan ? m.icon : (m.icon && m.icon.length <= 2 ? m.icon : '')}</div>`;
                         } else {
                             // 単発作業 → アイコン円
                             const ep = (diffDays(new Date(p.start), evDate) + (sIdx - clampedSIdx)) * ds + (ds / 2);
@@ -1482,6 +1532,33 @@
                         }
                     });
                     bar.innerHTML = h;
+
+                    // 同日複数アイコンのサイクル表示（2秒ごとに切り替え）
+                    (function() {
+                        const marks = Array.from(bar.querySelectorAll('.p-mark'));
+                        const posMap = {};
+                        marks.forEach(function(mk) {
+                            const posKey = isPC ? mk.style.left : mk.style.top;
+                            if (!posMap[posKey]) posMap[posKey] = [];
+                            posMap[posKey].push(mk);
+                        });
+                        Object.values(posMap).forEach(function(group) {
+                            if (group.length > 1) {
+                                group.forEach(function(mk, i) {
+                                    mk.style.opacity = i === 0 ? '1' : '0';
+                                    mk.style.transition = 'opacity 0.4s ease';
+                                    mk.title = group.length + '件（タップで編集）';
+                                });
+                                let cur = 0;
+                                const id = setInterval(function() {
+                                    group[cur].style.opacity = '0';
+                                    cur = (cur + 1) % group.length;
+                                    group[cur].style.opacity = '1';
+                                }, 2000);
+                                _cycleIntervals.push(id);
+                            }
+                        });
+                    })();
 
                     // p-mark / p-work-band にダブルクリックで作業編集パネルを開く
                     bar.querySelectorAll('.p-mark, .p-work-band').forEach(function(mk) {
@@ -1555,11 +1632,17 @@
         }
 
         function renderUI() {
+            // 同日サイクルインターバルをクリア（再レンダリング時の蓄積防止）
+            _cycleIntervals.forEach(id => clearInterval(id));
+            _cycleIntervals = [];
             const isPC = window.innerWidth > 768;
             const appMain = document.querySelector('.app-main');
             const axis = document.getElementById('axisFixed');
             const grid = document.getElementById('gridScroll');
             if (!appMain || !axis || !grid) return;
+
+            // スマホ全体表示時: ds計算前にパレットを描画して正確な高さを取得する
+            renderPalette();
 
             let ds;
             if (state.zoom < 0.5) {
@@ -1567,15 +1650,21 @@
                 if (isPC) {
                     const avail = window.innerWidth - 140; // ヘッダー幅を考慮
                     ds = avail / 367;
+                    grid.style.height = ''; // 通常のflexレイアウトに戻す
                 } else {
-                    const avail = appMain.clientHeight || window.innerHeight - 60;
-                    ds = (avail - 40) / 365;
+                    // ヘッダーの実際の高さを直接測定してusableな高さを算出
+                    const headerEl = document.querySelector('header');
+                    const headerH = headerEl ? headerEl.offsetHeight : 60;
+                    const usable = window.innerHeight - headerH - getMobilePaletteH();
+                    ds = (usable - 40) / 365;
+                    grid.style.height = usable + 'px'; // grid-scrollをusableな高さに固定
                 }
             } else {
                 ds = (isPC ? 60 : 110) * state.zoom; // PCは60px / Mobileは全項目が入る110px基準
+                grid.style.height = ''; // 通常表示ではflexレイアウトに戻す
             }
 
-            renderCalendar(isPC, ds); renderPalette(); renderPlantings(isPC, ds);
+            renderCalendar(isPC, ds); renderPlantings(isPC, ds);
 
             if (isPC) {
                 // PC版: モバイル残留スタイルを完全リセットしてから設定
@@ -1596,7 +1685,11 @@
                 axis.style.overflowY = 'hidden'; // scrollTop同期のため非表示
                 axis.style.width = '100px';
                 axis.style.height = '100%';
-                grid.onscroll = () => { axis.scrollTop = grid.scrollTop; };
+                
+                // モバイル：スクロール同期
+                grid.onscroll = () => {
+                    axis.scrollTop = grid.scrollTop;
+                };
             }
             const btnZoom = document.getElementById('btnZoom');
             if (btnZoom) btnZoom.innerText = (state.zoom < 0.5) ? '🔍 通常表示' : '🔍 全体表示';
@@ -1636,9 +1729,10 @@
         }
 
         function setupInteractions() {
+            const appMain = document.querySelector('.app-main'); // クロージャ内で正しく参照するために宣言
             let ghost = null, active = null, currentType = '';
             const start = (e) => {
-                const t = e.target.closest('.p-btn, .p-icon, .p-mark, .p-bar-line, .p-resize-handle, .p-work-band'); if (!t || t.classList.contains('p-mark-label') || t.style.opacity === '0.3') return;
+                const t = e.target.closest('.p-btn, .p-icon, .p-mark, .p-bar-line, .p-resize-handle, .p-work-band'); if (!t || t.classList.contains('p-mark-label') || t.style.opacity === '0.3' || t.style.opacity === '0') return;
                 active = t; currentType = t.dataset.type || (t.classList.contains('p-resize-handle') ? 'bar-resize' : (t.classList.contains('p-icon') || t.classList.contains('p-bar-line') ? 'bar-move' : 'mark-move'));
                 const now = Date.now(); if (now - lastTap < 350) {
                     if (currentType === 'bar-move') openPnl('p', t.dataset.pid);
@@ -1667,7 +1761,7 @@
                 if (layer) {
                     const rect = layer.getBoundingClientRect(); const isPC = window.innerWidth > 768;
                     const offset = isPC ? (touch.clientX - rect.left) : (touch.clientY - rect.top);
-                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (appMain.clientHeight - 40) / 365) : (isPC ? 60 : 110) * state.zoom;
+                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (function(){ const _h = document.querySelector('header'); const _hH = _h ? _h.offsetHeight : 60; return (window.innerHeight - _hH - getMobilePaletteH() - 40) / 365; })()) : (isPC ? 60 : 110) * state.zoom;
                     const d = new Date(2026, 0, 1 + Math.floor(offset / currentDs));
                     const tip = document.getElementById('dateTip'); tip.style.display = 'block'; tip.innerText = (d.getMonth() + 1) + '/' + d.getDate();
                     tip.style.left = (touch.clientX + 15) + 'px'; tip.style.top = (touch.clientY - 40) + 'px';
@@ -1683,8 +1777,10 @@
                 if (layer) {
                     const rect = layer.getBoundingClientRect(); const isPC = window.innerWidth > 768;
                     const offset = isPC ? (touch.clientX - rect.left) : (touch.clientY - rect.top);
-                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (appMain.clientHeight - 40) / 365) : (isPC ? 60 : 110) * state.zoom;
-                    changed = handleDrop(currentType, formatDate(new Date(2026, 0, 1 + Math.floor(offset / currentDs))), layer.dataset.fieldId, active);
+                    const currentDs = (state.zoom < 0.5) ? (isPC ? (window.innerWidth - 140) / 366 : (function(){ const _h = document.querySelector('header'); const _hH = _h ? _h.offsetHeight : 60; return (window.innerHeight - _hH - getMobilePaletteH() - 40) / 365; })()) : (isPC ? 60 : 110) * state.zoom;
+                    // 時間軸と垂直方向の座標でレーン番号を算出（複数作物が同一圃場にある場合の正確な判定）
+                    const crossOffset = isPC ? (touch.clientY - rect.top) : (touch.clientX - rect.left);
+                    changed = handleDrop(currentType, formatDate(new Date(2026, 0, 1 + Math.floor(offset / currentDs))), layer.dataset.fieldId, active, crossOffset);
                 }
                 document.querySelectorAll('.ghost').forEach(g => g.remove());
                 ghost = null; dateTip.style.display = 'none';
@@ -1712,7 +1808,7 @@
             let ds;
             if (state.zoom < 0.5) {
                 if (isPC) ds = (window.innerWidth - 140) / 367;
-                else ds = (((appMain ? appMain.clientHeight : window.innerHeight - 60)) - 40) / 365;
+                else { const _hEl = document.querySelector('header'); ds = (window.innerHeight - (_hEl ? _hEl.offsetHeight : 60) - getMobilePaletteH() - 40) / 365; }
             } else {
                 ds = (isPC ? 60 : 110) * state.zoom;
             }
@@ -1782,14 +1878,18 @@
             document.addEventListener('touchend', () => { touchDown = false; });
         }
 
-        function handleDrop(type, date, fieldId, target) {
+        function handleDrop(type, date, fieldId, target, crossOffset) {
             let changed = false;
             if (type === 'crop') {
                 if (!freeCheckPlannings(fieldId)) return false;
                 state.plantings.push({ id: 'p' + Date.now(), fieldId, cropId: target.dataset.id, start: date, end: formatDate(new Date(new Date(date).getTime() + 60 * 86400000)), events: [] });
                 changed = true;
             } else if (type === 'work') {
-                const p = state.plantings.find(x => x.fieldId === fieldId && date >= x.start && date <= x.end);
+                // crossOffset（時間軸と垂直方向の座標）からレーン番号を逆算して対象作付けを特定
+                const laneSize = 35;
+                const laneIdx = (crossOffset != null) ? Math.max(0, Math.round((crossOffset - 25) / laneSize)) : 0;
+                let p = state.plantings.find(x => x.fieldId === fieldId && x.laneIndex === laneIdx && date >= x.start && date <= x.end);
+                if (!p) p = state.plantings.find(x => x.fieldId === fieldId && date >= x.start && date <= x.end);
                 if (p) { if (target.dataset.id === 'w6') p.hStart = date; else if (target.dataset.id === 'w7') p.hEnd = date; p.events.push({ type: target.dataset.id, date }); changed = true; }
             } else if (type === 'bar-move') {
                 const p = state.plantings.find(x => x.id === target.dataset.pid);
@@ -1798,10 +1898,12 @@
                     const _base = new Date(2026, 0, 1);
                     const _visualStart = new Date(Math.max(new Date(p.start).getTime(), _base.getTime()));
                     const dDays = diffDays(_visualStart, new Date(date));
-                    if (dDays !== 0) {
+                    // 日付が変わる場合 OR 圃場が変わる場合に更新
+                    if (dDays !== 0 || p.fieldId !== fieldId) {
                         const moveD = (s) => { if (!s) return null; let nd = new Date(s); nd.setDate(nd.getDate() + dDays); return formatDate(nd); };
                         p.start = moveD(p.start); p.end = moveD(p.end); if (p.hStart) p.hStart = moveD(p.hStart); if (p.hEnd) p.hEnd = moveD(p.hEnd);
                         if (p.events) p.events.forEach(ev => ev.date = moveD(ev.date));
+                        p.fieldId = fieldId; // 圃場を移動先に更新（別圃場へのドラッグ移動に対応）
                         changed = true;
                     }
                 }
@@ -1809,14 +1911,40 @@
                 const p = state.plantings.find(x => x.id === target.dataset.pid);
                 if (p) { p.end = date; changed = true; }
             } else if (type === 'mark-move') {
-                const p = state.plantings.find(x => x.id === target.dataset.pid);
-                if (p) { const ev = p.events[target.dataset.idx]; ev.date = date; if (ev.type === 'w6') p.hStart = date; if (ev.type === 'w7') p.hEnd = date; changed = true; }
+                const srcP = state.plantings.find(x => x.id === target.dataset.pid);
+                if (srcP) {
+                    const ev = srcP.events[parseInt(target.dataset.idx)];
+                    // ドロップ先の作付けをlaneIndexで特定（別作物への移動も可能に）
+                    const laneSize = 35;
+                    const laneIdx = (crossOffset != null) ? Math.max(0, Math.round((crossOffset - 25) / laneSize)) : (srcP.laneIndex || 0);
+                    let destP = state.plantings.find(x => x.fieldId === fieldId && x.laneIndex === laneIdx && date >= x.start && date <= x.end);
+                    if (!destP) destP = state.plantings.find(x => x.fieldId === fieldId && x.laneIndex === laneIdx);
+                    if (!destP) destP = srcP; // どこにも当たらなければ元の作付けに留まる
+                    if (destP.id === srcP.id) {
+                        // 同じ作付け内: 日付だけ更新
+                        ev.date = date;
+                        if (ev.type === 'w6') srcP.hStart = date;
+                        if (ev.type === 'w7') srcP.hEnd = date;
+                    } else {
+                        // 別の作付けへ移動: 元から削除して移動先へ追加
+                        srcP.events.splice(parseInt(target.dataset.idx), 1);
+                        if (ev.type === 'w6') { srcP.hStart = null; destP.hStart = date; }
+                        if (ev.type === 'w7') { srcP.hEnd = null; destP.hEnd = date; }
+                        ev.date = date;
+                        destP.events.push(ev);
+                    }
+                    changed = true;
+                }
             }
             if (changed) save();
             return changed;
         }
 
-        function save() { localStorage.setItem(DB_KEY, JSON.stringify(state)); }
+        function save() {
+            state.updatedAt = Date.now();
+            localStorage.setItem(DB_KEY, JSON.stringify(state));
+            pushSync();
+        }
         function closeModal() { document.getElementById('masterModal').style.display = 'none'; renderUI(); }
 
         // 指定日付の位置までスクロール（保存後に画面外にならないように）
@@ -1832,7 +1960,7 @@
             let ds;
             if (state.zoom < 0.5) {
                 if (isPC) ds = (window.innerWidth - 140) / 367;
-                else ds = ((appMain ? appMain.clientHeight : window.innerHeight - 60) - 40) / 365;
+                else { const _hEl = document.querySelector('header'); ds = (window.innerHeight - (_hEl ? _hEl.offsetHeight : 60) - getMobilePaletteH() - 40) / 365; }
             } else {
                 ds = (isPC ? 60 : 110) * state.zoom;
             }
@@ -1944,6 +2072,16 @@
             </div>
             <div id="master-list-area"></div>
             <div style="margin-top:20px; padding:15px; background:#f5f5f5; border-radius:12px;">
+                <label style="font-size:12px; font-weight:bold; color:#666; margin-bottom:10px; display:block;">📱 スマホ・PC連動設定（同期）</label>
+                <div style="font-size:11px; color:#666; margin-bottom:10px; line-height:1.4;">
+                    別のデバイスとデータを同期するための設定です。GAS等の同期APIのURLとアクセスキーを入力してください。
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <input type="text" id="sync-url" value="${state.sync.url || ''}" placeholder="同期URL (https://script.google.com/...)" style="width:100%; height:36px; padding:0 10px; border:1px solid #ccc; border-radius:18px; font-size:12px;">
+                    <input type="text" id="sync-key" value="${state.sync.key || ''}" placeholder="アクセスキー" style="width:100%; height:36px; padding:0 10px; border:1px solid #ccc; border-radius:18px; font-size:12px;">
+                    <button class="btn" style="background:#2e7d32; height:36px;" onclick="saveSyncSettings()">💾 同期設定を保存して実行</button>
+                </div>
+                <hr style="margin:15px 0; border:none; border-top:1px solid #ddd;">
                 <label style="font-size:12px; font-weight:bold; color:#666; margin-bottom:10px; display:block;">データ管理</label>
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     <button class="btn" style="background:#e65100; height:40px;" onclick="addDummyData()">📋 サンプルデータを読み込む</button>
@@ -2661,6 +2799,54 @@
                 btn.innerText = originalText;
                 btn.disabled = false;
             });
+        }
+
+        function saveSyncSettings() {
+            const url = document.getElementById('sync-url').value.trim();
+            const key = document.getElementById('sync-key').value.trim();
+            if (!url || !key) return alert('URLとキーを入力してください');
+            state.sync = { url, key };
+            save();
+            alert('同期設定を保存しました。');
+            pullSync(true);
+        }
+
+        async function pushSync() {
+            if (!state.sync.key || !state.sync.url) return;
+            try {
+                await fetch(`${state.sync.url}?key=${state.sync.key}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(state)
+                });
+            } catch (e) { console.error('Cloud Sync Push Error', e); }
+        }
+
+        async function pullSync(manual = false) {
+            if (!state.sync.key || !state.sync.url) return;
+            try {
+                const res = await fetch(`${state.sync.url}?key=${state.sync.key}`);
+                if (res.ok) {
+                    const cloudState = await res.json();
+                    if (cloudState && cloudState.updatedAt) {
+                        // クラウド側の方が新しい場合のみ取り込む（手動の場合は確認を出す）
+                        if (cloudState.updatedAt > (state.updatedAt || 0)) {
+                            if (!manual || confirm('クラウドに新しいデータがあります。同期しますか？')) {
+                                state = cloudState;
+                                localStorage.setItem(DB_KEY, JSON.stringify(state));
+                                renderUI();
+                                if (manual) alert('同期が完了しました。');
+                                else console.log('Auto-sync: updated to ' + new Date(state.updatedAt).toLocaleTimeString());
+                            }
+                        } else if (manual) {
+                            alert('現在、最新の状態です。');
+                        }
+                    }
+                }
+            } catch (e) {
+                if (manual) alert('クラウドからのデータ取得に失敗しました。');
+                console.error('Cloud Sync Pull Error', e);
+            }
         }
 
         init();
