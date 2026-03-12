@@ -1188,6 +1188,18 @@
                 if (!parsed.updatedAt) parsed.updatedAt = 0;
                 state = parsed;
             }
+            
+            // プロ版(PRO)の設定があれば、同期設定を自動で引き継ぐ
+            if (!state.sync.url || !state.sync.key) {
+                const proSaved = localStorage.getItem('HarvestSuite_Schedule_Pro_v1');
+                if (proSaved) {
+                    const proState = JSON.parse(proSaved);
+                    if (proState.sync && proState.sync.url && proState.sync.key) {
+                        state.sync = { ...proState.sync };
+                    }
+                }
+            }
+
             renderUI(); setupInteractions(); setupDragScroll();
 
             // クラウド同期対応（Pro/Free共通）
@@ -1348,8 +1360,8 @@
             }
             grid.innerHTML = state.fields.map(f => {
                 const totalGridW = totalW;
-                const layerStyle = isPC ? `width:${totalGridW}px;` : `height:${totalDays * ds}px;`;
-                return `<div class="field-col" style="${isPC ? 'width:' + (totalGridW + 140) + 'px' : ''}">
+                const layerStyle = isPC ? `width:${totalGridW}px;` : `width:100px; height:${totalDays * ds}px; min-height:100px; background:white;`;
+                return `<div class="field-col" style="${isPC ? 'width:' + (totalGridW + 140) + 'px' : 'width:100px;'}">
                     <div class="field-header" style="width:${isPC ? 140 : 100}px;">${f.name}</div>
                     <div class="data-layer" data-field-id="${f.id}" style="${layerStyle} flex-shrink:0;"></div>
                 </div>`;
@@ -2074,7 +2086,7 @@
             <div style="margin-top:20px; padding:15px; background:#f5f5f5; border-radius:12px;">
                 <label style="font-size:12px; font-weight:bold; color:#666; margin-bottom:10px; display:block;">📱 スマホ・PC連動設定（同期）</label>
                 <div style="font-size:11px; color:#666; margin-bottom:10px; line-height:1.4;">
-                    別のデバイスとデータを同期するための設定です。GAS等の同期APIのURLとアクセスキーを入力してください。
+                    別のデバイス（PCやスマホ）とデータを繋ぐための設定です。共有元のURLとアクセスキーを入力してください。
                 </div>
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     <input type="text" id="sync-url" value="${state.sync.url || ''}" placeholder="同期URL (https://script.google.com/...)" style="width:100%; height:36px; padding:0 10px; border:1px solid #ccc; border-radius:18px; font-size:12px;">
