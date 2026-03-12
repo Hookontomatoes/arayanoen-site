@@ -102,6 +102,34 @@
             position: relative;
         }
 
+        /* 🛡️ プロ版 認証オーバーレイ */
+        #authOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #authOverlay.hidden { display: none !important; }
+        .auth-card {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .auth-input {
+            width: 100%; height: 50px; border: 2px solid #ddd; border-radius: 12px;
+            text-align: center; font-size: 18px; margin: 20px 0; font-family: monospace;
+        }
+        #auth-msg { color: #d32f2f; font-size: 13px; margin-bottom: 20px; min-height: 1.2em; }
+
         /* 🛡️ プロ版 認証オーバーレイ（最優先表示） */
         #authOverlay {
             position: fixed;
@@ -1065,6 +1093,19 @@
 </head>
 
 <body>
+    <!-- 🛡️ プロ版 物理認証ロック画面（このHTMLが認証の『壁』になります） -->
+    <div id="authOverlay">
+        <div class="auth-card">
+            <div style="font-size:50px; margin-bottom:15px;">🛡️</div>
+            <h2 style="color:var(--primary);">HarvestSuite Pro</h2>
+            <p style="color:#666; font-size:14px; margin-top:10px;">ライセンスキーを入力してください</p>
+            <input type="text" id="license-input" class="auth-input" placeholder="HS-XXXX-XXXX" onkeypress="if(event.key==='Enter')authenticate()">
+            <div id="auth-msg"></div>
+            <button class="btn" onclick="authenticate()" style="width:100%; height:50px; background:var(--primary); font-size:18px; border-radius:12px;">ライセンス認証</button>
+            <p style="font-size:11px; color:#999; margin-top:20px;">認証後、全ての機能が解放されます</p>
+        </div>
+    </div>
+
     <header>
         <div style="display:flex; align-items:center; gap:10px; min-width:0;">
             <!-- ロゴエリア：あらや農園キャラクター画像をここに配置 -->
@@ -1199,7 +1240,7 @@
             return pal.classList.contains('collapsed') ? 25 : pal.offsetHeight;
         }
 
-        function init() {
+        async function init() {
             const saved = localStorage.getItem(DB_KEY);
             if (saved) {
                 const parsed = JSON.parse(saved);
@@ -1224,6 +1265,14 @@
                     }
                 }
             }
+
+            // 🛡️ 強制ライセンスチェック（パスするまでUIを描画させない）
+            if (!state.sync.key) {
+                document.getElementById('authOverlay').classList.remove('hidden');
+            } else {
+                await verifyLicense(state.sync.key, false);
+            }
+
             renderUI(); setupInteractions(); setupDragScroll();
             // クラウド同期設定の自動セット（Zero-Config）
             if (!state.sync.url && window.location.protocol.startsWith('http')) {
@@ -2880,6 +2929,80 @@
                 console.error("Auth Error", e);
                 if (isManual) msg.innerText = "通信エラーが発生しました。";
                 // 通信エラー時：一度でも認証に成功したキーが保存されていれば通す、なければロック
+                if (state.sync.key) overlay.classList.add('hidden');
+                else overlay.classList.remove('hidden');
+            }
+        }
+
+        async function pushSync() {
+            if (!state.sync.key || !state.sync.url) return;
+            try {
+                state.updatedAt = Date.now();
+                await fetch(state.sync.url, {
+                    method: 'POST',
+                    body: JSON.stringify({ key: state.sync.key, data: state })
+                });
+            } catch (e) { console.error("Sync Error", e); }
+        }
+
+        async function pullSync() {
+            if (!state.sync.key || !state.sync.url) return;
+            try {
+                const res = await fetch(`${state.sync.url}?key=${state.sync.key}`);
+                if (res.ok) {
+                    const cloud = await res.json();
+                    if (cloud && cloud.updatedAt > (state.updatedAt || 0)) {
+                        state = cloud;
+                        localStorage.setItem(DB_KEY, JSON.stringify(state));
+                        renderUI();
+                    }
+                }
+            } catch (e) { console.error("Sync Error", e); }
+        }
+
+        async function authenticate() {
+            const input = document.getElementById('license-input').value.trim();
+            if (!input) return;
+            const btn = document.querySelector('#authOverlay .btn');
+            btn.disabled = true; btn.innerText = "認証中...";
+            await verifyLicense(input, true);
+            btn.disabled = false; btn.innerText = "ライセンス認証";
+        }
+
+        async function verifyLicense(key, isManual) {
+            const msg = document.getElementById('auth-msg');
+            const AUTH_URL = state.sync.url || ""; 
+            const overlay = document.getElementById('authOverlay');
+            
+            if (!AUTH_URL) {
+                if (isManual) alert("管理者：同期URLが設定されていません。⚙️設定から入力してください。");
+                overlay.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${AUTH_URL}?key=${key}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data === "Invalid Key") {
+                        if (isManual) msg.innerText = "誤ったライセンスキーです。";
+                        overlay.classList.remove('hidden');
+                        return;
+                    }
+                    state.sync.key = key;
+                    if (data && data.updatedAt > (state.updatedAt || 0)) {
+                        state = data;
+                    }
+                    save();
+                    overlay.classList.add('hidden');
+                    renderUI();
+                } else {
+                    if (isManual) msg.innerText = "認証に失敗しました。";
+                    overlay.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error("Auth Error", e);
+                if (isManual) msg.innerText = "通信エラーが発生しました。";
                 if (state.sync.key) overlay.classList.add('hidden');
                 else overlay.classList.remove('hidden');
             }
