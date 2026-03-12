@@ -1251,23 +1251,13 @@
             }
 
             renderUI(); setupInteractions(); setupDragScroll();
-            // クラウド同期設定の自動セット（Zero-Config）
-            if (!state.sync.url && window.location.protocol.startsWith('http')) {
-                state.sync.url = window.location.origin + '/api/sync';
-            }
-            if (!state.sync.key) {
-                state.sync.key = 'FARM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-            }
 
-            // クラウド同期設定があれば自動取得とタイマー開始
+            // クラウド同期（ライセンス認証済みの場合のみ実行）
             if (state.sync.key && state.sync.url) {
-                save(); // 自動生成したキーを保存
-                pullSync(false);
-                // 30秒ごとにバックグラウンドで同期
-                setInterval(() => pullSync(false), 30000);
-                // 画面（タブ）に戻った瞬間に同期
+                pullSync(); // 起動時の引っ張り
+                setInterval(() => pullSync(), 60000); // 1分おき
                 document.addEventListener("visibilitychange", () => {
-                    if (document.visibilityState === "visible") pullSync(false);
+                    if (document.visibilityState === "visible") pullSync();
                 });
             }
             // PC↔スマホ切替時はスクロール位置を当日に戻す、それ以外は位置を保持
